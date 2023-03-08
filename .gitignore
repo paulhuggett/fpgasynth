@@ -1,10 +1,11 @@
 .DS_Store
 *.bak
 *~
+.vscode/**
 
-*/db/
-*/incremental_db/
-*/simulation/
-*/output_files/
+db/**
+incremental_db
+simulation/**
+output_files/**
 
-*/obj_dir/
+obj_dir/**
