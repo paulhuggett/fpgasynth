@@ -1,9 +1,11 @@
-import mypackage::frequency;
-import mypackage::amplitude;
+import mypackage::C_FRACTIONAL_BITS;
 import mypackage::FREQUENCY_FRACTIONAL_BITS;
-import mypackage::WAVETABLE_N;
-import mypackage::phase_index_type;
+import mypackage::PHASE_ACCUMULATOR_FRACTIONAL_BITS;
 import mypackage::PHASE_INDEX_BITS;
+import mypackage::WAVETABLE_N;
+import mypackage::amplitude;
+import mypackage::frequency;
+import mypackage::phase_index_type;
 
 module nco #(
   parameter unsigned WIDTH = 16, // The number of bits for each stored value.
@@ -16,10 +18,6 @@ module nco #(
   output amplitude out
 );
 
-  // The number of fractional bits for the constant multiplication factor (C)
-  // used by the oscillator's phase accumulator.
-  localparam C_FRACTIONAL_BITS = PHASE_INDEX_BITS - FREQUENCY_FRACTIONAL_BITS - WAVETABLE_N;
-
   // C is derived from f/(S*r) where S is the sample rate and
   // r is the number of entries in the wavetable. Everything but f is constant
   // and we'd like to eliminate the division, so rearrange to get f*(r/S).
@@ -29,11 +27,6 @@ module nco #(
   typedef logic[C_FRACTIONAL_BITS:0] PAC_type;
   localparam C = PAC_type'((WAVETABLE_MAX / SAMPLE_RATE) * FRACTIONAL_MAX);
 
-  // When multiplying a UQa.b number by a UQc.d number, the result is
-  // UQ(a+c).(b+d). For the phase accumulator, a+c should be at least
-  // wavetable::N but may be more (we don't care if it overflows); b+d should
-  // be as large as possible to maintain precision.
-  localparam ACCUMULATOR_FRACTIONAL_BITS = FREQUENCY_FRACTIONAL_BITS + C_FRACTIONAL_BITS;
 
   phase_index_type increment;
   phase_index_type phase;
@@ -52,7 +45,7 @@ module nco #(
       // TODO: interpolation.
       // The most significant (WAVETABLE_N) bits of the phase accumulator output
       // provide the index into the lookup table.
-      addr <= address_type'(phase >> ACCUMULATOR_FRACTIONAL_BITS);
+      addr <= address_type'(phase >> PHASE_ACCUMULATOR_FRACTIONAL_BITS);
       phase <= phase + increment;
     end
   end

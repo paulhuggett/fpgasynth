@@ -28,31 +28,17 @@ module lerp #(
   input logic [RATIO_FRAC_BITS-1:0] ratio, //QU0.b where b=RATIO_FRACTIONAL_BITS
   output logic [INPUT_BITS-1:0] out // QUx.0
 );
-
+  localparam XR = INPUT_BITS + RATIO_FRAC_BITS;
   typedef logic signed [INPUT_BITS:0] sintype;
   typedef logic unsigned [INPUT_BITS-1:0] uintype;
+  typedef logic signed [XR:0] qxr;
 
-  sintype shi;
-  assign shi[INPUT_BITS] = 1'b0;
-  assign shi[INPUT_BITS-1:0] = ina;
+  always_comb begin
+    automatic sintype sina = {1'b0, ina}; // signed version of input A
+    automatic sintype sinb = {1'b0, inb}; // signed version of input B
+    automatic qxr b = qxr'(sina - sinb) * ratio; // Qx.0*Q0.r=Qx.r (r=RATIO_FRACTIONAL_BITS)
+    automatic sintype c = b[XR:RATIO_FRAC_BITS];
+    out = uintype'(c + inb); // Qx.0+Qx.0=Q(x+1).0 => QUx.0 (truncate to QUx.0)
+  end
   
-  sintype slo;
-  assign slo [INPUT_BITS] = 1'b0;
-  assign slo [INPUT_BITS-1:0] = inb;
-  
-  // Qx.0-Qx.0=Qx.0
-  sintype a;
-  assign a = shi - slo;
-
-  // Qx.0*Q0.r=Qx.r (r=RATIO_FRACTIONAL_BITS)
-  typedef logic signed [INPUT_BITS + RATIO_FRAC_BITS:0] qxr;
-  qxr b;
-  assign b = qxr'(a) * ratio;
-
-  // Qx.r => Qx.0
-  sintype c;
-  assign c = sintype'(b >>> RATIO_FRAC_BITS);
-
-  // Qx.0+Qx.0=Q(x+1).0 => QUx.0 (truncate to QUx.0)
-  assign out = uintype'(c + inb);
 endmodule:lerp
