@@ -1,0 +1,10 @@
+.DS_Store
+*.bak
+*~
+
+*/db/
+*/incremental_db/
+*/simulation/
+*/output_files/
+
+*/obj_dir/
