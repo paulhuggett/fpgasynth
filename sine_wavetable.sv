@@ -22,7 +22,7 @@ module sine_wavetable (
   amplitude inb;
   logic [8-1:0] ratio;
 
-  lerp #(.INPUT_BITS(AMPLITUDE_BITS), .RATIO_FRAC_BITS(8)) l (.ina(ina), .inb(inb), .ratio(ratio), .out(q));
+  lerp #(.INPUT_BITS(AMPLITUDE_BITS), .RATIO_FRAC_BITS(8)) l (.a(ina), .b(inb), .ratio(ratio), .out(q));
 
   always @(posedge clock) begin
     ina <= rom[phase];     // use just the integer part of phase.
