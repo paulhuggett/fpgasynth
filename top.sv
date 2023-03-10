@@ -1,6 +1,7 @@
 import mypackage::frequency;
 import mypackage::amplitude;
 import mypackage::FREQUENCY_FRACTIONAL_BITS;
+import mypackage::AMPLITUDE_BITS;
 
 module top(
   input wire CLOCK_50, // connect to the 50MHz crystal
@@ -48,7 +49,7 @@ module top(
   //ring_buffer rb (.rst(reset), .clk(fast_clock), .read_enable(audio_clock), .write_enable(fast_clock), .data_in(osc_out), .data_out(rb_out), .empty(rb_empty), .full(rb_full));
 
   logic dout; // pdm audio out.
-  pdm #(.NBITS(16)) pdm1 (.clock(CLOCK_50), .reset(reset), .din(osc_out), .dout(dout));
+  pdm #(.NBITS(AMPLITUDE_BITS)) pdm1 (.clock(CLOCK_50), .reset(reset), .din(osc_out), .dout(dout));
  
   assign GPIO[0] = reset;
   assign GPIO[1] = CLOCK_50; // AD2 DIO0
