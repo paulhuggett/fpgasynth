@@ -1,6 +1,6 @@
 `timescale 1 ps / 1 ps
 package mypackage;
-  parameter AMPLITUDE_BITS = 16;
+  parameter AMPLITUDE_BITS = 24;
   typedef logic[AMPLITUDE_BITS - 1:0] amplitude;
 
   // UQ25.7

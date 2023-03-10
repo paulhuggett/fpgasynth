@@ -1,12 +1,15 @@
-// Single Port ROM
+`timescale 1 ps / 1 ps
+
 import mypackage::WAVETABLE_N;
 import mypackage::AMPLITUDE_BITS;
 import mypackage::amplitude;
-
+import mypackage::phase_index_type;
+import mypackage::PHASE_ACCUMULATOR_FRACTIONAL_BITS;
+import mypackage::PHASE_INDEX_BITS;
 
 module sine_wavetable (
   input logic clock,
-  input logic [WAVETABLE_N-1:0] phase, //TODO: phase_index_type
+  input phase_index_type phase,
   output amplitude q
 );
 
@@ -20,14 +23,18 @@ module sine_wavetable (
 
   amplitude ina;
   amplitude inb;
-  logic [8-1:0] ratio;
+  logic [PHASE_ACCUMULATOR_FRACTIONAL_BITS-1:0] ratio;
 
-  lerp #(.INPUT_BITS(AMPLITUDE_BITS), .RATIO_FRAC_BITS(8)) l (.a(ina), .b(inb), .ratio(ratio), .out(q));
+  lerp #(.INPUT_BITS(AMPLITUDE_BITS), .RATIO_FRAC_BITS(PHASE_ACCUMULATOR_FRACTIONAL_BITS)) lerper (.a(ina), .b(inb), .ratio(ratio), .out(q));
 
   always @(posedge clock) begin
-    ina <= rom[phase];     // use just the integer part of phase.
-    inb <= rom[phase + 1]; // as above.
-    ratio <= phase;              // shift away the integer part of addr.
+    // Extract the whole number part from the phase.
+    automatic logic [WAVETABLE_N-1:0] whole = phase[PHASE_INDEX_BITS-1:PHASE_ACCUMULATOR_FRACTIONAL_BITS];
+    assert (PHASE_INDEX_BITS - PHASE_ACCUMULATOR_FRACTIONAL_BITS == WAVETABLE_N);
+
+    ina <= rom[whole];        // use just the integer part of phase.
+    inb <= rom[whole + 1'b1]; // as above.
+    ratio <= phase[PHASE_ACCUMULATOR_FRACTIONAL_BITS-1:0]; // the fractional part of the phase.
   end
 
 endmodule:sine_wavetable

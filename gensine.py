@@ -1,8 +1,15 @@
 #!/usr/bin/env python3
 import math
 
-WIDTH = 16 # The number of bits for each stored value.
+MEMFILE = True
+HEX_PREFIX = '' if MEMFILE else '0x'
+SEPARATOR = ' ' if MEMFILE else ','
+
+WIDTH = 24 # The number of bits for each stored value.
 WAVETABLE_N = 11 # 2^N wavetable entries.
+
+OUT_MAX_WIDTH = 80
+OUT_VALUE_WIDTH = 1 + len(HEX_PREFIX) + (WIDTH / 4) # separator, 0x, hex characters.
 
 OUT_MAX = 2 ** WIDTH - 1
 HALF_OUT = OUT_MAX / 2 # DC offset we apply to the amplitudes
@@ -14,14 +21,12 @@ assert (all ([ x >= 0 and x <= OUT_MAX for x in samples ]))
 sep = ''
 n = 0
 for x in samples:
-  print ("{0}0x{1:04x}".format(sep, x), end='')
-  if n >= math.trunc(80/7-1):
-    sep = ',\n'
+  print ("{0}{1}{2:06x}".format(sep, HEX_PREFIX, x), end='')
+  if n >= math.trunc(OUT_MAX_WIDTH/OUT_VALUE_WIDTH-1):
+    sep = SEPARATOR + '\n'
     n = 0
   else:
-    sep = ','
+    sep = SEPARATOR
     n += 1 # comma, zero X, four digits.
 print ('')
-#  sep = ',\n' if col > 80 else
-#  assert ()
-  #print ("{0:x}".format(round (samp)))
+

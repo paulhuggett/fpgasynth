@@ -1,3 +1,5 @@
+`timescale 1 ps / 1 ps
+
 import mypackage::C_FRACTIONAL_BITS;
 import mypackage::FREQUENCY_FRACTIONAL_BITS;
 import mypackage::PHASE_ACCUMULATOR_FRACTIONAL_BITS;
@@ -27,25 +29,17 @@ module nco #(
   typedef logic[C_FRACTIONAL_BITS:0] PAC_type;
   localparam C = PAC_type'((WAVETABLE_MAX / SAMPLE_RATE) * FRACTIONAL_MAX);
 
-
   phase_index_type increment;
   phase_index_type phase;
 
-  typedef logic [WAVETABLE_N-1:0] address_type;
-  address_type addr;
-
-  sine_wavetable wt (.clock(clock), .phase(addr), .q(out));
+  sine_wavetable wt (.clock(clock), .phase(phase), .q(out));
 
   assign increment = phase_index_type'(freq) * C;
 
   always @(posedge clock or posedge reset) begin
     if (reset) begin
-      {addr, phase} <= 0;
+      phase <= 0;
     end else if (enable) begin
-      // TODO: interpolation.
-      // The most significant (WAVETABLE_N) bits of the phase accumulator output
-      // provide the index into the lookup table.
-      addr <= address_type'(phase >> PHASE_ACCUMULATOR_FRACTIONAL_BITS);
       phase <= phase + increment;
     end
   end

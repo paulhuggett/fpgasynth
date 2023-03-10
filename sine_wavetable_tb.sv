@@ -1,23 +1,30 @@
 `timescale 1 ps / 1 ps
-module sine_wavetable_tb ();
+import mypackage::phase_index_type;
+import mypackage::PHASE_INDEX_BITS;
+import mypackage::PHASE_ACCUMULATOR_FRACTIONAL_BITS;
+import mypackage::amplitude;
 
-  reg [7:0] address = 0;
-  logic [31:0] value; // Output from DUT is wire type
+module sine_wavetable_tb ();
+  localparam INT_FIRST = PHASE_INDEX_BITS;
+  localparam INT_LAST = PHASE_ACCUMULATOR_FRACTIONAL_BITS;
+  logic clock = 0;
+  phase_index_type phase = 0;
+  amplitude value; // Output from DUT is wire type
 
   initial begin
     $display($time, " << Starting Simulation >>");
-    address = 8'b0;
-
-    #5120;
+    #51200;
     $display($time, " << Simulation Complete >>");
     $stop;
   end
    
-  always begin
-    address = address + 1;
+  always #1 clock = ~clock;
+  always @(posedge clock) begin
+    // +1 here to add 0.5 to the phase on each clock edge.
+    phase[INT_FIRST-1:INT_LAST+1] <= phase[INT_FIRST-1:INT_LAST+1] + 1'b1;
   end
 
   // Instantiate the DUT.
-  sine_wavetable wt (.phase(address), .q(value));
+  sine_wavetable wt (.clock(clock), .phase(phase), .q(value));
 
 endmodule
