@@ -1,3 +1,5 @@
+`timescale 1 ps / 1 ps
+
 import mypackage::frequency;
 import mypackage::amplitude;
 import mypackage::FREQUENCY_FRACTIONAL_BITS;

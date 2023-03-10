@@ -30,6 +30,7 @@
 //      // Qx.0+Qx.0=Q(x+1).0 => QUx.0 (truncate to QUx.0)
 //      return static_cast<uinteger_t<input_bits>> (g + a);
 //    }
+`timescale 1 ps / 1 ps
 
 module lerp #(
   parameter INPUT_BITS = 16,
