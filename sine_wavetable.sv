@@ -18,7 +18,7 @@ module sine_wavetable (
 
   // Initialize the ROM with $readmemh.
   initial begin
-    $readmemh("/media/psf/Home/realwork/fpga/testbench/sine.mem", rom);
+    $readmemh("../sine.mem", rom);
   end
 
   amplitude ina;
