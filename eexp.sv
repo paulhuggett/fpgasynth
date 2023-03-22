@@ -1,5 +1,11 @@
 `timescale 1 ps / 1 ps
 
+// Computes the first few terms of the Taylor series expansion of e^x:
+//     e^x=\sum_{k=0}^{\infty}\frac{x^k}{k!}
+// That is:
+//     1 + x + \frac{x^2}{2!}+\frac{x^3}{3!}
+// Using just the first few terms is sufficient to give us reasonable
+// accuracy for values of x that are close to 0.
 module eexp #(
   parameter TOTAL_BITS = 32,
   parameter FRACTIONAL_BITS = 16
@@ -8,19 +14,12 @@ module eexp #(
   output logic signed [TOTAL_BITS-1:0] out
 );
 
-function logic signed [TOTAL_BITS*2-1:0] sign_extend (logic signed [TOTAL_BITS-1:0] x);
-  return { {TOTAL_BITS{x[TOTAL_BITS-1]}}, x[TOTAL_BITS-1:0] };
-endfunction:sign_extend
-
-  // Computes the first few terms of the Taylor series expansion of e^x:
-  //     e^x=\sum_{k=0}^{\infty}\frac{x^k}{k!}
-  // That is:
-  //     1 + x + \frac{x^2}{2!}+\frac{x^3}{3!}
-  // Using just the first few terms is sufficient to give us reasonable
-  // accuracy for values of x that are close to 0.
-
   typedef logic signed [TOTAL_BITS - 1:0] value_type;
   typedef logic signed [TOTAL_BITS * 2 - 1:0] mul_type;
+
+  function mul_type sign_extend (value_type x);
+    return { {TOTAL_BITS{x[TOTAL_BITS-1]}}, x[TOTAL_BITS-1:0] };
+  endfunction:sign_extend
 
   localparam value_type one = value_type'(1 * (2 ** FRACTIONAL_BITS));
   localparam value_type one_sixth = value_type'(1.0 / 6.0 * (2.0 ** FRACTIONAL_BITS)); // 1/3!
