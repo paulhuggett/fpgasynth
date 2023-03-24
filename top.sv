@@ -23,6 +23,8 @@ module top(
 	logic reset;
   frequency f;
   amplitude osc_out;
+  amplitude voice_out;
+  typedef logic [AMPLITUDE_BITS*2-1:0] ampmul;
 
   pll clocks (.areset(reset), .inclk0(CLOCK_50), .c0(audio_clock), .c1(fast_clock), .locked(locked));
 
@@ -50,20 +52,11 @@ module top(
     end else begin
       f <= 22'd440 << FREQUENCY_FRACTIONAL_BITS;
     end
+
+    voice_out = amplitude'((ampmul'(osc_out) * ampmul'(egout)) >> AMPLITUDE_BITS);
   end
 
   //ring_buffer rb (.rst(reset), .clk(fast_clock), .read_enable(audio_clock), .write_enable(fast_clock), .data_in(osc_out), .data_out(rb_out), .empty(rb_empty), .full(rb_full));
-
-  logic dout; // pdm audio out.
-  pdm #(.NBITS(AMPLITUDE_BITS)) pdm1 (.clock(CLOCK_50), .reset(reset), .din(osc_out), .dout(dout));
-
-  //assign GPIO[0] = reset;
-  assign GPIO[0] = key[1];
-  assign GPIO[1] = CLOCK_50; // AD2 DIO0
-  assign GPIO[2] = fast_clock; // AD2 DIO1
-  assign GPIO[3] = audio_clock; // AD2 DIO2
-  assign GPIO[4] = dout; // AD2 DIO3
-  assign GPIO[17] = dout;
 
   localparam real sample_rate = 192000;
   localparam real attack_time = 0.1;
@@ -99,6 +92,17 @@ module top(
     .active
   );
   assign gate = key[0];
+
+  logic dout; // pdm audio out.
+  pdm #(.NBITS(AMPLITUDE_BITS)) pdm1 (.clock(CLOCK_50), .reset(reset), .din(voice_out), .dout(dout));
+
+  //assign GPIO[0] = reset;
+  assign GPIO[0] = key[1];
+  assign GPIO[1] = CLOCK_50; // AD2 DIO0
+  assign GPIO[2] = fast_clock; // AD2 DIO1
+  assign GPIO[3] = audio_clock; // AD2 DIO2
+  assign GPIO[4] = dout; // AD2 DIO3
+  assign GPIO[17] = dout;
 
   always @(posedge audio_clock) begin
     LED[0] <= (egout > 24'hE0_0000);//fixed'(7.0/8.0*(2**AMPLITUDE_BITS);
