@@ -33,18 +33,21 @@ module adsr #(
   typedef logic signed [TOTAL_BITS-1:0]    fixed;
   typedef logic signed [TOTAL_BITS*2-1:0]  mul_type;
 
+  `define TO_FIXED(x) (fixed'((x) * FRACTIONAL_MUL))
+  `define MUL2FIX(x) (fixed'((x) >> FRACTIONAL_BITS))
+
   localparam fixed one = fixed'(1) << FRACTIONAL_BITS;
   localparam real FRACTIONAL_MUL = 2.0 ** FRACTIONAL_BITS;
-  localparam fixed ATTACK_RATIO_F  = fixed'(ATTACK_RATIO  * FRACTIONAL_MUL);
-  localparam fixed DECAY_RATIO_F   = fixed'(DECAY_RATIO   * FRACTIONAL_MUL);
-  localparam fixed RELEASE_RATIO_F = fixed'(RELEASE_RATIO * FRACTIONAL_MUL);
+  localparam fixed ATTACK_RATIO_F  = `TO_FIXED(ATTACK_RATIO);
+  localparam fixed DECAY_RATIO_F   = `TO_FIXED(DECAY_RATIO);
+  localparam fixed RELEASE_RATIO_F = `TO_FIXED(RELEASE_RATIO);
   // Quartus Prime doesn't support synthesis of a call to $ln() even if evaluating a compile-time constant!!!
   //  localparam fixed ATTACK_ALPHA  = fixed'((-$ln ((1.0 + ATTACK_RATIO ) / ATTACK_RATIO )) * (1 << FRACTIONAL_BITS));
   //  localparam fixed DECAY_ALPHA   = fixed'((-$ln ((1.0 + DECAY_RATIO  ) / DECAY_RATIO  )) * (1 << FRACTIONAL_BITS));
   //  localparam fixed RELEASE_ALPHA = fixed'((-$ln ((1.0 + RELEASE_RATIO) / RELEASE_RATIO)) * (1 << FRACTIONAL_BITS));
-  localparam fixed ATTACK_ALPHA  = fixed'(-1.46633706879 * FRACTIONAL_MUL);
-  localparam fixed DECAY_ALPHA = fixed'(-9.21044036698 * FRACTIONAL_MUL);
-  localparam fixed RELEASE_ALPHA = fixed'(-9.21044036698 * FRACTIONAL_MUL);
+  localparam fixed ATTACK_ALPHA  = `TO_FIXED(-1.46633706879);
+  localparam fixed DECAY_ALPHA = `TO_FIXED(-9.21044036698);
+  localparam fixed RELEASE_ALPHA = `TO_FIXED(-9.21044036698);
 
   typedef struct packed {
     fixed a;
@@ -54,7 +57,13 @@ module adsr #(
   time_values bases_;
   time_values coefs_;
 
-  enum logic [2:0] { IDLE, ATTACK, DECAY, SUSTAIN, RELEASE } state_;
+  enum logic [4:0] { // Ensure that states are onehot.
+    IDLE    = 5'b00001,
+    ATTACK  = 5'b00010,
+    DECAY   = 5'b00100,
+    SUSTAIN = 5'b01000,
+    RELEASE = 5'b10000
+  } state_;
   fixed output_;
   logic gate_;
 
@@ -64,18 +73,18 @@ module adsr #(
 
   eexp #(.TOTAL_BITS(TOTAL_BITS), .FRACTIONAL_BITS(FRACTIONAL_BITS))
     attack_exp (
-      .x(fixed'((sign_extend(ATTACK_ALPHA) * sign_extend(a)) >> FRACTIONAL_BITS)),
+      .x(`MUL2FIX(sign_extend(ATTACK_ALPHA) * sign_extend(a))),
       .out(coefs_.a)
   );
   eexp #(.TOTAL_BITS(TOTAL_BITS), .FRACTIONAL_BITS(FRACTIONAL_BITS))
     decay_exp (
-      .x(fixed'((sign_extend (DECAY_ALPHA) * sign_extend(d)) >> FRACTIONAL_BITS)),
+      .x(`MUL2FIX(sign_extend (DECAY_ALPHA) * sign_extend(d))),
       .out(coefs_.d)
   );
 
   eexp #(.TOTAL_BITS(TOTAL_BITS), .FRACTIONAL_BITS(FRACTIONAL_BITS))
     release_exp (
-      .x(fixed'((sign_extend(RELEASE_ALPHA) * sign_extend(r)) >> FRACTIONAL_BITS)),
+      .x(`MUL2FIX(sign_extend(RELEASE_ALPHA) * sign_extend(r))),
       .out(coefs_.r)
   );
 
@@ -141,8 +150,8 @@ module adsr #(
         end
       end
 
-      default: begin
-      end
+      IDLE: begin end
+      SUSTAIN: begin end
       endcase
     end
   end
