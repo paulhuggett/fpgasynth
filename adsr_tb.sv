@@ -1,5 +1,7 @@
 `timescale 1 ps / 1 ps
 
+import mypackage::amplitude;
+
 module adsr_tb ();
 
   localparam SAMPLE_RATE = 1000;
@@ -16,7 +18,7 @@ module adsr_tb ();
   fixed s;
   fixed r;
   bit gate;
-  fixed out;
+  amplitude out;
   bit active;
 
   initial forever #1 clk = ~clk;
@@ -38,7 +40,7 @@ module adsr_tb ();
   );
 
   initial begin
-    $monitor ("[%0t] active=%d out=%f", $time, active, real'(out) / MAX);
+    $monitor ("[%0t] active=%d out=%x", $time, active, out);
 
     #1
     reset = 1'b0;

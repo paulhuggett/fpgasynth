@@ -17,8 +17,8 @@ module eexp #(
   typedef logic signed [TOTAL_BITS - 1:0] value_type;
   typedef logic signed [TOTAL_BITS * 2 - 1:0] mul_type;
 
-  function mul_type sign_extend (value_type x);
-    return { {TOTAL_BITS{x[TOTAL_BITS-1]}}, x[TOTAL_BITS-1:0] };
+  function mul_type sign_extend (value_type y);
+    return { {TOTAL_BITS{y[TOTAL_BITS-1]}}, y[TOTAL_BITS-1:0] };
   endfunction:sign_extend
 
   localparam value_type one = value_type'(1 * (2 ** FRACTIONAL_BITS));

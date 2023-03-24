@@ -1,5 +1,7 @@
 `timescale 1 ps / 1 ps
 package mypackage;
+
+/* verilator lint_off UNUSEDPARAM */
   parameter AMPLITUDE_BITS = 24;
   typedef logic[AMPLITUDE_BITS - 1:0] amplitude;
 
@@ -25,5 +27,6 @@ package mypackage;
 
   // QUa.b where a+b=PHASE_INDEX_BITS and b=PHASE_ACCUMULATOR_FRACTIONAL_BITS.
   typedef logic[PHASE_INDEX_BITS-1:0] phase_index_type;
+/* verilator lint_on UNUSEDPARAM */
 
 endpackage:mypackage

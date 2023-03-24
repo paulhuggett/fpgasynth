@@ -82,7 +82,7 @@ module top(
   fixed r = fixed'((1.0 / (release_time * sample_rate)) * FRACTIONAL_MUL);//48'd44739;//fixed'((1.0 / (release_time * sample_rate)) * (2.0 ** FRACTIONAL_BITS));
   logic active;
   logic gate;
-  fixed egout;
+  amplitude egout;
 
   adsr #(
     .TOTAL_BITS(TOTAL_BITS),
@@ -101,27 +101,27 @@ module top(
   assign gate = key[0];
 
   always @(posedge audio_clock) begin
-    LED[0] <= (egout >= 48'd1 << 32);//fixed'(1 * (2 ** FRACTIONAL_BITS))) ? 1'b1 : 1'b0;
-    LED[1] <= (egout >= 48'hE000_0000);//fixed'(7.0 / 8.0 * FRACTIONAL_MUL)) ? 1'b1 : 1'b0;
-    LED[2] <= (egout >= 48'hC000_0000);//fixed'(0.75 * FRACTIONAL_MUL)) ? 1'b1 : 1'b0;
-    LED[3] <= (egout >= 48'hA000_0000);//fixed'(0.625 / 8.0 * FRACTIONAL_MUL)) ? 1'b1 : 1'b0;
-    LED[4] <= (egout >= 48'h8000_0000);//fixed'(0.5 * FRACTIONAL_MUL)) ? 1'b1 : 1'b0;
-    LED[5] <= (egout >= 48'h6000_0000);//fixed'(0.375 * FRACTIONAL_MUL)) ? 1'b1 : 1'b0;
-    LED[6] <= (egout >= 48'h4000_0000);//fixed'(0.25 * FRACTIONAL_MUL)) ? 1'b1 : 1'b0;
-    LED[7] <= (egout >= 48'h2000_0000);//fixed'(0.125 * FRACTIONAL_MUL)) ? 1'b1 : 1'b0;
+    LED[0] <= (egout > 24'hE0_0000);//fixed'(7.0/8.0*(2**AMPLITUDE_BITS);
+    LED[1] <= (egout > 24'hC0_0000);//fixed'(7.0 / 8.0 * FRACTIONAL_MUL)) ? 1'b1 : 1'b0;
+    LED[2] <= (egout > 24'hA0_0000);//fixed'(0.75 * FRACTIONAL_MUL)) ? 1'b1 : 1'b0;
+    LED[3] <= (egout > 24'h80_0000);//fixed'(0.625 / 8.0 * FRACTIONAL_MUL)) ? 1'b1 : 1'b0;
+    LED[4] <= (egout > 24'h60_0000);//fixed'(0.5 * FRACTIONAL_MUL)) ? 1'b1 : 1'b0;
+    LED[5] <= (egout > 24'h40_0000);//fixed'(0.375 * FRACTIONAL_MUL)) ? 1'b1 : 1'b0;
+    LED[6] <= (egout > 24'h20_0000);//fixed'(0.25 * FRACTIONAL_MUL)) ? 1'b1 : 1'b0;
+    LED[7] <= (egout > 24'h00_0000);//fixed'(0.125 * FRACTIONAL_MUL)) ? 1'b1 : 1'b0;
   end
   always @(posedge audio_clock) begin
-    GPIO[ 5] <= egout[FRACTIONAL_BITS];//osc_out[0];
-    GPIO[ 6] <= egout[FRACTIONAL_BITS-1];//osc_out[1];
-    GPIO[ 7] <= egout[FRACTIONAL_BITS-2];//osc_out[2];
-    GPIO[ 8] <= egout[FRACTIONAL_BITS-3];//osc_out[3];
-    GPIO[ 9] <= egout[FRACTIONAL_BITS-4];//osc_out[4];
-    GPIO[10] <= egout[FRACTIONAL_BITS-5];//osc_out[5];
-    GPIO[11] <= egout[FRACTIONAL_BITS-6];//osc_out[6];
-    GPIO[12] <= egout[FRACTIONAL_BITS-7];//osc_out[7];
-    GPIO[13] <= egout[FRACTIONAL_BITS-8];//osc_out[8];
-    GPIO[14] <= egout[FRACTIONAL_BITS-9];//osc_out[9];
-    GPIO[15] <= egout[FRACTIONAL_BITS-10];//osc_out[10];
-    GPIO[16] <= egout[FRACTIONAL_BITS-11];//osc_out[11];
+    GPIO[ 5] <= egout[AMPLITUDE_BITS-1];//osc_out[0];
+    GPIO[ 6] <= egout[AMPLITUDE_BITS-2];//osc_out[1];
+    GPIO[ 7] <= egout[AMPLITUDE_BITS-3];//osc_out[2];
+    GPIO[ 8] <= egout[AMPLITUDE_BITS-4];//osc_out[3];
+    GPIO[ 9] <= egout[AMPLITUDE_BITS-5];//osc_out[4];
+    GPIO[10] <= egout[AMPLITUDE_BITS-6];//osc_out[5];
+    GPIO[11] <= egout[AMPLITUDE_BITS-7];//osc_out[6];
+    GPIO[12] <= egout[AMPLITUDE_BITS-8];//osc_out[7];
+    GPIO[13] <= egout[AMPLITUDE_BITS-9];//osc_out[8];
+    GPIO[14] <= egout[AMPLITUDE_BITS-10];//osc_out[9];
+    GPIO[15] <= egout[AMPLITUDE_BITS-11];//osc_out[10];
+    GPIO[16] <= egout[AMPLITUDE_BITS-12];//osc_out[11];
   end
 endmodule:top

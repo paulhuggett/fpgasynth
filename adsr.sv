@@ -12,6 +12,10 @@
 // "Envelope Generators and DCA" section 7.5 "Analog EG Emulation".
 
 `timescale 1 ps / 1 ps
+
+import mypackage::amplitude;
+import mypackage::AMPLITUDE_BITS;
+
 module adsr #(
   parameter TOTAL_BITS = 32,
   parameter FRACTIONAL_BITS = 16,
@@ -26,7 +30,7 @@ module adsr #(
   input logic signed [TOTAL_BITS-1:0] s,
   input logic signed [TOTAL_BITS-1:0] r,
   input logic gate,
-  output logic signed [TOTAL_BITS-1:0] out,
+  output amplitude out,
   output logic active
 );
 
@@ -36,7 +40,9 @@ module adsr #(
   `define TO_FIXED(x) (fixed'((x) * FRACTIONAL_MUL))
   `define MUL2FIX(x) (fixed'((x) >> FRACTIONAL_BITS))
 
-  localparam fixed one = fixed'(1) << FRACTIONAL_BITS;
+  // 'one' is actually the value that is just less than one!
+  localparam fixed one = ((fixed'(1) << FRACTIONAL_BITS) - fixed'(1));
+
   localparam real FRACTIONAL_MUL = 2.0 ** FRACTIONAL_BITS;
   localparam fixed ATTACK_RATIO_F  = `TO_FIXED(ATTACK_RATIO);
   localparam fixed DECAY_RATIO_F   = `TO_FIXED(DECAY_RATIO);
@@ -57,12 +63,12 @@ module adsr #(
   time_values bases_;
   time_values coefs_;
 
-  enum logic [4:0] { // Ensure that states are onehot.
-    IDLE    = 5'b00001,
-    ATTACK  = 5'b00010,
-    DECAY   = 5'b00100,
-    SUSTAIN = 5'b01000,
-    RELEASE = 5'b10000
+  enum logic [3:0] { // Ensure that states are onehot.
+    IDLE    = 4'b0000,
+    ATTACK  = 4'b0001,
+    DECAY   = 4'b0010,
+    SUSTAIN = 4'b0100,
+    RELEASE = 4'b1000
   } state_;
   fixed output_;
   logic gate_;
@@ -70,6 +76,11 @@ module adsr #(
   function mul_type sign_extend (fixed x);
     return { {TOTAL_BITS{x[TOTAL_BITS-1]}}, x[TOTAL_BITS-1:0] };
   endfunction:sign_extend
+  /* verilator lint_off UNUSEDSIGNAL */
+  function amplitude fixed2amplitude (fixed x);
+    return x[FRACTIONAL_BITS-1:FRACTIONAL_BITS-AMPLITUDE_BITS];
+  endfunction
+  /* verilator lint_on UNUSEDSIGNAL */
 
   eexp #(.TOTAL_BITS(TOTAL_BITS), .FRACTIONAL_BITS(FRACTIONAL_BITS))
     attack_exp (
@@ -113,16 +124,16 @@ module adsr #(
         end
       end
 
-      case (state_)
+      unique case (state_)
       ATTACK: begin
         automatic fixed aout = bases_.a + fixed'((sign_extend(output_) * sign_extend(coefs_.a)) >> FRACTIONAL_BITS);
         if (aout >= one) begin
           output_ <= one;
-          out <= one;
+          out <= fixed2amplitude(one);
           state_ <= DECAY;
         end else begin
           output_ <= aout;
-          out <= aout;
+          out <= fixed2amplitude(aout);
         end
       end
 
@@ -130,13 +141,14 @@ module adsr #(
         automatic fixed dout = bases_.d + fixed'((sign_extend(output_) * sign_extend(coefs_.d)) >> FRACTIONAL_BITS);
         if (dout <= s) begin
           output_ <= s;
-          out <= s;
+          out <= fixed2amplitude(s);
           state_ <= SUSTAIN;
         end else begin
           output_ <= dout;
-          out <= dout;
+          out <= fixed2amplitude(dout);
         end
       end
+
 
       RELEASE: begin
         automatic fixed rout = bases_.r + fixed'((mul_type'(output_) * coefs_.r) >> FRACTIONAL_BITS);
@@ -146,12 +158,13 @@ module adsr #(
           state_ <= IDLE;
         end else begin
           output_ <= rout;
-          out <= rout;
+          out <= fixed2amplitude(rout);
         end
       end
 
       IDLE: begin end
       SUSTAIN: begin end
+
       endcase
     end
   end

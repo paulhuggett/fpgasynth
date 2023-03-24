@@ -47,10 +47,12 @@ module lerp #(
   typedef logic signed [XR:0] qxr;
 
   always_comb begin
+/* verilator lint_off UNUSEDSIGNAL */
     automatic sinttype diff = sinttype'({1'b0, b}) - sinttype'({1'b0, a});
-    automatic qxr d = qxr'(diff) * ratio; // Qx.0*Q0.r=Qx.r
-    automatic sinttype e = d[XR:RATIO_FRAC_BITS]; // Extract the integer part.
+    automatic qxr d = (qxr'(diff) * ratio); // Qx.0*Q0.r=Qx.r
+    automatic sinttype e = sinttype'(d); // Extract the integer part.
     out = uinttype'(e + a); // Qx.0+Qx.0=Q(x+1).0 => QUx.0 (truncate to QUx.0)
+/* verilator lint_on UNUSEDSIGNAL */
   end
   
 endmodule:lerp
