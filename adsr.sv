@@ -1,3 +1,16 @@
+//*          _         *
+//*  __ _ __| |____ _  *
+//* / _` / _` (_-< '_| *
+//* \__,_\__,_/__/_|   *
+//*                    *
+
+// This module implements an analog-like ADSR envelope generator. It is based
+// on the techniques described and implemented by Nigel Redmon in his EarLevel
+// blog series at <https://www.earlevel.com/main/category/envelope-generators/>.
+// This is also mentioned in Will C. Pirkle's book "Designing Software
+// Synthesizer Plugins In C++ with Audio DSP" (2nd edition) in the Chapter
+// "Envelope Generators and DCA" section 7.5 "Analog EG Emulation".
+
 `timescale 1 ps / 1 ps
 module adsr #(
   parameter TOTAL_BITS = 32,
@@ -6,7 +19,7 @@ module adsr #(
   parameter real DECAY_RATIO = 0.0001,
   parameter real RELEASE_RATIO = 0.0001
 ) (
-  input logic clock,
+  input logic clk,
   input logic reset,
   input logic signed [TOTAL_BITS-1:0] a,
   input logic signed [TOTAL_BITS-1:0] d,
@@ -20,20 +33,19 @@ module adsr #(
   typedef logic signed [TOTAL_BITS-1:0]    fixed;
   typedef logic signed [TOTAL_BITS*2-1:0]  mul_type;
 
-  localparam fixed one = fixed'(1 * (2 ** FRACTIONAL_BITS)); //to_fixed (1.0);
+  localparam fixed one = fixed'(1) << FRACTIONAL_BITS;
+  localparam real FRACTIONAL_MUL = 2.0 ** FRACTIONAL_BITS;
+  localparam fixed ATTACK_RATIO_F  = fixed'(ATTACK_RATIO  * FRACTIONAL_MUL);
+  localparam fixed DECAY_RATIO_F   = fixed'(DECAY_RATIO   * FRACTIONAL_MUL);
+  localparam fixed RELEASE_RATIO_F = fixed'(RELEASE_RATIO * FRACTIONAL_MUL);
+  // Quartus Prime doesn't support synthesis of a call to $ln() even if evaluating a compile-time constant!!!
+  //  localparam fixed ATTACK_ALPHA  = fixed'((-$ln ((1.0 + ATTACK_RATIO ) / ATTACK_RATIO )) * (1 << FRACTIONAL_BITS));
+  //  localparam fixed DECAY_ALPHA   = fixed'((-$ln ((1.0 + DECAY_RATIO  ) / DECAY_RATIO  )) * (1 << FRACTIONAL_BITS));
+  //  localparam fixed RELEASE_ALPHA = fixed'((-$ln ((1.0 + RELEASE_RATIO) / RELEASE_RATIO)) * (1 << FRACTIONAL_BITS));
+  localparam fixed ATTACK_ALPHA  = fixed'(-1.46633706879 * FRACTIONAL_MUL);
+  localparam fixed DECAY_ALPHA = fixed'(-9.21044036698 * FRACTIONAL_MUL);
+  localparam fixed RELEASE_ALPHA = fixed'(-9.21044036698 * FRACTIONAL_MUL);
 
-  localparam fixed ATTACK_RATIO_F  = fixed'(ATTACK_RATIO  * (2.0 ** FRACTIONAL_BITS)); //to_fixed(ATTACK_RATIO);
-  localparam fixed DECAY_RATIO_F   = fixed'(DECAY_RATIO   * (2.0 ** FRACTIONAL_BITS)); //to_fixed(DECAY_RATIO);
-  localparam fixed RELEASE_RATIO_F = fixed'(RELEASE_RATIO * (2.0 ** FRACTIONAL_BITS)); //to_fixed(RELEASE_RATIO);
-
-//  localparam fixed ATTACK_ALPHA  = fixed'((-$ln ((1.0 + ATTACK_RATIO ) / ATTACK_RATIO )) * (1 << FRACTIONAL_BITS));
-  localparam fixed ATTACK_ALPHA  = fixed'((-1.46633706879) * (2.0 ** FRACTIONAL_BITS));
-//  localparam fixed DECAY_ALPHA   = fixed'((-$ln ((1.0 + DECAY_RATIO  ) / DECAY_RATIO  )) * (1 << FRACTIONAL_BITS));
-  localparam fixed DECAY_ALPHA = fixed'((-9.21044036698) * (2.0 ** FRACTIONAL_BITS));
-//  localparam fixed RELEASE_ALPHA = fixed'((-$ln ((1.0 + RELEASE_RATIO) / RELEASE_RATIO)) * (1 << FRACTIONAL_BITS));
-  localparam fixed RELEASE_ALPHA = fixed'((-9.21044036698) * (2.0 ** FRACTIONAL_BITS));
-
-  typedef enum { IDLE, ATTACK, DECAY, SUSTAIN, RELEASE } state;
   typedef struct packed {
     fixed a;
     fixed d;
@@ -42,7 +54,7 @@ module adsr #(
   time_values bases_;
   time_values coefs_;
 
-  state state_;
+  enum logic [2:0] { IDLE, ATTACK, DECAY, SUSTAIN, RELEASE } state_;
   fixed output_;
   logic gate_;
 
@@ -74,7 +86,7 @@ module adsr #(
     bases_.r = fixed'((sign_extend(0   - RELEASE_RATIO_F) * sign_extend(one - coefs_.r)) >> FRACTIONAL_BITS);
   end
 
-  always @(posedge clock or posedge reset) begin
+  always @(posedge clk or posedge reset) begin
     if (reset) begin
       state_ <= IDLE;
       output_ <= 0;
