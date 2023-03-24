@@ -1,0 +1,37 @@
+name: Verilate
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    # The branches below must be a subset of the branches above
+    branches: [ "main" ]
+  workflow_dispatch:
+jobs:
+  verilate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install cmake ninja-build verilator
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          submodules: 'True'
+      - name: Create Build Environment
+        run: cmake -E make_directory "${{ runner.workspace }}/build"
+      - name: Configure
+        run: |
+          cmake -G Ninja                           \
+                -B "${{ runner.workspace }}/build" \
+                -S "$GITHUB_WORKSPACE/verilator"
+      - name: Build
+        run: |
+          cmake --build \
+                -B "${{ runner.workspace }}/build"
+      - name: Run Tests
+        run: |
+          for f in $(find "${{ runner.workspace }}/build" -name CMakeFiles -prune -or -perm +111 -type f -print); do
+            echo $F
+            $f
+          done
