@@ -35,7 +35,7 @@ jobs:
           sudo apt-get install libfl-dev  # Ubuntu only (ignore if gives error)
           #sudo apt-get install zlibc zlib1g zlib1g-dev  # Ubuntu only (ignore if gives error)
 
-      - name: Verilator Git Quick Install
+      - name: Build Verilator From Source
         working-directory: 'verilator_src'
         run: |
           cd "$GITHUB_WORKSPACE/verilator_src"
@@ -45,7 +45,11 @@ jobs:
 
           autoconf         # Create ./configure script
           ./configure      # Configure and create Makefile
-          make -j $(nproc)  # Build Verilator itself (if error, try just 'make')
+          make
+
+      - name: Install Verilator
+        working-directory: 'verilator_src'
+        run: |
           sudo make install
 
       - name: Checkout repository
