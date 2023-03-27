@@ -36,16 +36,19 @@ jobs:
           sudo apt-get install help2man
           #sudo apt-get install zlibc zlib1g zlib1g-dev  # Ubuntu only (ignore if gives error)
 
+      - name: Cache Verilator Object Files
+        uses: actions/cache@v3
+        with:
+          path: verilator_src/src/obj_opt/*.o
+          key: verilator-objects
+
       - name: Build Verilator From Source
         working-directory: 'verilator_src'
         run: |
           cd "$GITHUB_WORKSPACE/verilator_src"
-          ls -la
-
-          unset VERILATOR_ROOT  # For bash
-
-          autoconf         # Create ./configure script
-          ./configure      # Configure and create Makefile
+          unset VERILATOR_ROOT
+          autoconf    # Create ./configure script
+          ./configure # Configure and create Makefile
           make
 
       - name: Install Verilator
