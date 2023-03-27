@@ -39,8 +39,8 @@ jobs:
       - name: Cache Verilator Object Files
         uses: actions/cache@v3
         with:
-          path: verilator_src/src/obj_opt/*.o
-          key: verilator-objects
+          path: verilator_src/src/**/*.o
+          key: ${{ runner.os }}-vobjs
 
       - name: Build Verilator From Source
         working-directory: 'verilator_src'
