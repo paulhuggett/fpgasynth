@@ -39,7 +39,7 @@ jobs:
       - name: Cache Verilator Object Files
         uses: actions/cache@v3
         with:
-          path: verilator_src/src/**/*.o
+          path: verilator_src/**/*.o
           key: ${{ runner.os }}-vobjs
 
       - name: Build Verilator From Source
@@ -76,3 +76,6 @@ jobs:
             echo $F
             $f
           done
+      - name: Find the verilator objects
+        run: |
+          find . -name \*.o
