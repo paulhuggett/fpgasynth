@@ -69,8 +69,7 @@ jobs:
                 -S "$GITHUB_WORKSPACE/verilator"
       - name: Build
         run: |
-          cmake --build \
-                -B "${{ runner.workspace }}/build"
+          cmake --build "${{ runner.workspace }}/build"
       - name: Run Tests
         run: |
           for f in $(find "${{ runner.workspace }}/build" -name CMakeFiles -prune -or -perm +111 -type f -print); do
