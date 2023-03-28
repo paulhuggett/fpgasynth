@@ -22,8 +22,8 @@ jobs:
         with:
           key: verilator-objects
           path:
-            verilator/src/obj_dbg
-            verilator/src/obj_opt
+            src/obj_dbg
+            src/obj_opt
 
       - name: Install Verilator Build Dependencies
         run: |
