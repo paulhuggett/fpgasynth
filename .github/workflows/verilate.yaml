@@ -7,24 +7,23 @@ on:
     branches: [ "main" ]
   workflow_dispatch:
 jobs:
-  verilate:
+  verilator-build:
     runs-on: ubuntu-latest
     steps:
-      - name: Install Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake ninja-build
-
       # Based on the instructions <https://verilator.org/guide/latest/install.html#git-install>.
-
       - name: Checkout Verilator Sources
         uses: actions/checkout@v3
         with:
           repository: 'verilator/verilator'
-          submodules: 'True'
-          # Relative path under $GITHUB_WORKSPACE to place the repository
-          path: 'verilator_src'
-          ref: stable
+          ref: stable  # get the "stable" branch
+
+      - name: Cache Verilator Object Files
+        uses: actions/cache@v3
+        with:
+          key: verilator-objects
+          path:
+            verilator/src/obj_dbg
+            verilator/src/obj_opt
 
       - name: Install Verilator Build Dependencies
         run: |
@@ -36,48 +35,55 @@ jobs:
           sudo apt-get install -y help2man
           #sudo apt-get install -y zlibc zlib1g zlib1g-dev  # Ubuntu only (ignore if gives error)
 
-      - name: Cache Verilator Object Files
-        uses: actions/cache@v3
-        with:
-          path: |
-            verilator/src/obj_dbg
-            verilator/src/obj_opt
-          key: ${{ runner.os }}-vobjs
-
       - name: Build Verilator From Source
-        working-directory: 'verilator_src'
         run: |
-          cd "$GITHUB_WORKSPACE/verilator_src"
           unset VERILATOR_ROOT
           autoconf    # Create ./configure script
           ./configure # Configure and create Makefile
           make
 
       - name: Install Verilator
-        working-directory: 'verilator_src'
         run: |
-          sudo make install
+           sudo make install
+
+  verilate:
+    needs: verilator-build
+    runs-on: ubuntu-latest
+    steps:
+      #- name: Download a single artifact
+      #  uses: actions/download-artifact@v3
+      #  with:
+      #    name: output-log-file
+
+      #- name: Install Verilator
+      #  working-directory: 'verilator_src'
+      #  run: |
+      #    sudo make install
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build
 
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
           submodules: 'True'
+
       - name: Create Build Environment
         run: cmake -E make_directory "${{ runner.workspace }}/build"
+
       - name: Configure
         run: |
-          cmake -G Ninja                           \
-                -B "${{ runner.workspace }}/build" \
-                -S "$GITHUB_WORKSPACE/verilator"
+          cmake -G Ninja -B "${{ runner.workspace }}/build" -S "$GITHUB_WORKSPACE/verilator"
+
       - name: Build
         run: |
           cmake --build "${{ runner.workspace }}/build"
+
       - name: Run Tests
         run: |
           for f in $(find "${{ runner.workspace }}/build" -name CMakeFiles -prune -or -perm +111 -type f -print); do
             echo $F
             $f
           done
-      - name: Find the verilator objects
-        run: |
-          find . -name \*.o
