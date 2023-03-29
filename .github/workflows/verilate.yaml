@@ -38,11 +38,11 @@ jobs:
 
       - name: Build
         run: |
-          #make
+          make
 
       - name: Test
         run: |
-          #make test
+          make test
 
       - name: Tar the build
         working-directory: ${{ github.workspace }}
