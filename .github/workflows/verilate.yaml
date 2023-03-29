@@ -47,8 +47,10 @@ jobs:
       - name: Tar the build
         working-directory: ${{ github.workspace }}
         run: |
-          cd ..
-          tar --posix -c -z -f ~/verilator.tgz $(find verilator \( -name .\* \) -prune -or -print)
+          mkdir /tmp/verilator
+          rsync -a --exclude='.*' . /tmp/verilator
+          cd tmp
+          tar --posix -c -z -f ~/verilator.tgz verilator
 
       - name: Upload
         uses: actions/upload-artifact@v3
