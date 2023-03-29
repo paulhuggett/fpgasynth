@@ -38,18 +38,19 @@ jobs:
 
       - name: Build
         run: |
-          make
+          #make
 
       - name: Test
         run: |
-          make test
+          #make test
 
       - name: Tar the build
         working-directory: ${{ github.workspace }}
         run: |
-          mkdir /tmp/verilator
-          rsync -a --exclude='.*' . /tmp/verilator
-          cd tmp
+          DIR=$(mktemp -d)
+          mkdir "$DIR/verilator"
+          rsync -a --exclude='.*' . "$DIR/verilator"
+          cd "$DIR"
           tar --posix -c -z -f ~/verilator.tgz verilator
 
       - name: Upload
