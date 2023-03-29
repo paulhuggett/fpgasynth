@@ -11,21 +11,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Based on the instructions <https://verilator.org/guide/latest/install.html#git-install>.
-      - name: Checkout Verilator Sources
+      - name: Checkout Sources
         uses: actions/checkout@v3
         with:
           repository: 'verilator/verilator'
-          ref: stable  # get the "stable" branch
 
-      - name: Cache Verilator Object Files
-        uses: actions/cache@v3
-        with:
-          key: verilator-objects
-          path:
-            src/obj_dbg
-            src/obj_opt
+      - name: Apt Update
+        run: |
+          sudo apt-get update
 
-      - name: Install Verilator Build Dependencies
+      - name: Install Build Dependencies
         run: |
           sudo apt-get install -y git perl python3 make autoconf g++ flex bison ccache
           sudo apt-get install -y libunwind-dev
@@ -35,24 +30,31 @@ jobs:
           sudo apt-get install -y help2man
           #sudo apt-get install -y zlibc zlib1g zlib1g-dev  # Ubuntu only (ignore if gives error)
 
-      - name: Build Verilator From Source
+      - name: Configure
         run: |
           unset VERILATOR_ROOT
           autoconf    # Create ./configure script
           ./configure # Configure and create Makefile
+
+      - name: Build
+        run: |
           make
 
-      - name: Test Verilator
+      - name: Test
         run: |
-           make test
+          make test
 
-      - name: Install Verilator
+      - name: Tar the build
+        working-directory: ${{ github.workspace }}
         run: |
-           sudo make install
+          cd ..
+          tar --posix -c -z -f ~/verilator.tgz $(find verilator \( -name .\* \) -prune -or -print)
 
-      - name: Where are the object files?
-        run: |
-          find ~ -name \*.o
+      - name: Upload
+        uses: actions/upload-artifact@v3
+        with:
+          name: verilator.tgz
+          path: ~/verilator.tgz
 
   verilate:
     needs: verilator-build
