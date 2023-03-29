@@ -63,15 +63,18 @@ jobs:
     needs: verilator-build
     runs-on: ubuntu-latest
     steps:
-      #- name: Download a single artifact
-      #  uses: actions/download-artifact@v3
-      #  with:
-      #    name: output-log-file
+      - name: Download verilator
+        uses: actions/download-artifact@v3
+        with:
+          name: verilator.tgz
 
-      #- name: Install Verilator
-      #  working-directory: 'verilator_src'
-      #  run: |
-      #    sudo make install
+      - name: Untar Verilator
+        run: |
+          tar xzvf verilator.tgz
+
+      - name: Install Verilator
+        run: |
+          sudo make -C verilator install
 
       - name: Install Dependencies
         run: |
