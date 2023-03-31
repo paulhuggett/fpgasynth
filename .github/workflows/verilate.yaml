@@ -99,7 +99,7 @@ jobs:
 
       - name: Run Tests
         run: |
-          for f in $(find "${{ runner.workspace }}/build" -name CMakeFiles -prune -or -perm +111 -type f -print); do
+          for f in $(find "${{ runner.workspace }}/build" -name CMakeFiles -prune -or -perm /u+x -type f -print); do
             echo $F
             $f
           done
