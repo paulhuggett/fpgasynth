@@ -48,6 +48,7 @@ jobs:
 #          make
       - name: Hack Build
         run: |
+          ls /home/runner/work/fpgasynth/fpgasynth/src/obj_*
           mkdir -p /home/runner/work/fpgasynth/fpgasynth/src/obj_opt
           echo stuff > /home/runner/work/fpgasynth/fpgasynth/src/obj_opt/file.o
           mkdir -p /home/runner/work/fpgasynth/fpgasynth/src/obj_dbg
