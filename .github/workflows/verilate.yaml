@@ -36,6 +36,14 @@ jobs:
           autoconf    # Create ./configure script
           ./configure # Configure and create Makefile
 
+      - name: Cache Object Files
+        uses: actions/cache@v3
+        with:
+          path:
+            verilator/src/obj_dbg
+            verilator/src/obj_opt
+          key: ${{ runner.os }}-vobjs
+
       - name: Build
         run: |
           make
