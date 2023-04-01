@@ -8,7 +8,13 @@ jobs:
       - name: Checkout Sources
         uses: actions/checkout@v3
         with:
-          repository: 'verilator/verilator'
+          repository: verilator/verilator
+          ref: stable
+
+      - name: Get Checked Out Commit
+        id: get-commit
+        run: |
+          echo COMMIT=$(git rev-parse HEAD) >> $GITHUB_OUTPUT
 
       - name: Apt Update
         run: |
@@ -34,7 +40,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ${{ github.workspace }}/**/*.o
-          key: ${{ runner.os }}-vobjs
+          key: ${{ runner.os }}-${{ steps.get-commit.outputs.COMMIT }}-${{ hashFiles('${{ github.workspace }}/**/*.o') }}
 
       - name: Build
         run: |
