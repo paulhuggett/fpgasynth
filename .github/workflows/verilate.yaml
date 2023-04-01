@@ -1,11 +1,5 @@
 name: Verilate
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    # The branches below must be a subset of the branches above
-    branches: [ "main" ]
-  workflow_dispatch:
+on: [push, pull_request, workflow_dispatch]
 jobs:
   verilator-build:
     runs-on: ubuntu-latest
@@ -39,39 +33,31 @@ jobs:
       - name: Cache Object Files
         uses: actions/cache@v3
         with:
-          path:
-            ${{ github.workspace }}/**/*.o
+          path: ${{ github.workspace }}/**/*.o
           key: ${{ runner.os }}-vobjs
 
-#      - name: Build
-#        run: |
-#          make
-      - name: Hack Build
+      - name: Build
         run: |
-          ls /home/runner/work/fpgasynth/fpgasynth/src/obj_*
-          mkdir -p /home/runner/work/fpgasynth/fpgasynth/src/obj_opt
-          echo stuff > /home/runner/work/fpgasynth/fpgasynth/src/obj_opt/file.o
-          mkdir -p /home/runner/work/fpgasynth/fpgasynth/src/obj_dbg
-          echo stuffs > /home/runner/work/fpgasynth/fpgasynth/src/obj_dbg/file.o
+          make
 
-#      - name: Test
-#        run: |
-#          make test
+      - name: Test
+        run: |
+          make test
 
-#      - name: Tar the build
-#        working-directory: ${{ github.workspace }}
-#        run: |
-#          DIR=$(mktemp -d)
-#          mkdir "$DIR/verilator"
-#          rsync -a --exclude='.*' . "$DIR/verilator"
-#          cd "$DIR"
-#          tar --posix -c -z -f ~/verilator.tgz verilator
+      - name: Tar the build
+        working-directory: ${{ github.workspace }}
+        run: |
+          DIR=$(mktemp -d)
+          mkdir "$DIR/verilator"
+          rsync -a --exclude='.*' . "$DIR/verilator"
+          cd "$DIR"
+          tar --posix -c -z -f ~/verilator.tgz verilator
 
-#      - name: Upload
-#        uses: actions/upload-artifact@v3
-#        with:
-#          name: verilator.tgz
-#          path: ~/verilator.tgz
+      - name: Upload
+        uses: actions/upload-artifact@v3
+        with:
+          name: verilator.tgz
+          path: ~/verilator.tgz
 
   verilate:
     needs: verilator-build
