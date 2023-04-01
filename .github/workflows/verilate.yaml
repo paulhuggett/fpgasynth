@@ -40,9 +40,9 @@ jobs:
         uses: actions/cache@v3
         with:
           path:
-            ${{ github.workspace }}/**/bin
-            ${{ github.workspace }}/**/obj_dbg
-            ${{ github.workspace }}/**/obj_opt
+            ${{ github.workspace }}/**/bin/*
+            ${{ github.workspace }}/**/obj_dbg/*
+            ${{ github.workspace }}/**/obj_opt/*
           key: ${{ runner.os }}-${{ steps.get-commit.outputs.COMMIT }}
 
       - name: Build
