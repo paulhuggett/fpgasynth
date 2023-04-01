@@ -40,8 +40,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path:
-            ${{ github.workspace }}/src/obj_dbg
-            ${{ github.workspace }}/src/obj_opt
+            ${{ github.workspace }}/**/*.o
           key: ${{ runner.os }}-vobjs
 
 #      - name: Build
@@ -52,7 +51,7 @@ jobs:
           mkdir -p /home/runner/work/fpgasynth/fpgasynth/src/obj_opt
           echo stuff > /home/runner/work/fpgasynth/fpgasynth/src/obj_opt/file.o
           mkdir -p /home/runner/work/fpgasynth/fpgasynth/src/obj_dbg
-          echo stuff > /home/runner/work/fpgasynth/fpgasynth/src/obj_dbg/file.o
+          echo stuffs > /home/runner/work/fpgasynth/fpgasynth/src/obj_dbg/file.o
 
 #      - name: Test
 #        run: |
