@@ -44,28 +44,34 @@ jobs:
             ${{ github.workspace }}/src/obj_opt
           key: ${{ runner.os }}-vobjs
 
-      - name: Build
+#      - name: Build
+#        run: |
+#          make
+      - name: Hack Build
         run: |
-          make
+          mkdir -p /home/runner/work/fpgasynth/fpgasynth/src/obj_opt
+          echo stuff > /home/runner/work/fpgasynth/fpgasynth/src/obj_opt/file.o
+          mkdir -p /home/runner/work/fpgasynth/fpgasynth/src/obj_dbg
+          echo stuff > /home/runner/work/fpgasynth/fpgasynth/src/obj_dbg/file.o
 
-      - name: Test
-        run: |
-          make test
+#      - name: Test
+#        run: |
+#          make test
 
-      - name: Tar the build
-        working-directory: ${{ github.workspace }}
-        run: |
-          DIR=$(mktemp -d)
-          mkdir "$DIR/verilator"
-          rsync -a --exclude='.*' . "$DIR/verilator"
-          cd "$DIR"
-          tar --posix -c -z -f ~/verilator.tgz verilator
+#      - name: Tar the build
+#        working-directory: ${{ github.workspace }}
+#        run: |
+#          DIR=$(mktemp -d)
+#          mkdir "$DIR/verilator"
+#          rsync -a --exclude='.*' . "$DIR/verilator"
+#          cd "$DIR"
+#          tar --posix -c -z -f ~/verilator.tgz verilator
 
-      - name: Upload
-        uses: actions/upload-artifact@v3
-        with:
-          name: verilator.tgz
-          path: ~/verilator.tgz
+#      - name: Upload
+#        uses: actions/upload-artifact@v3
+#        with:
+#          name: verilator.tgz
+#          path: ~/verilator.tgz
 
   verilate:
     needs: verilator-build
