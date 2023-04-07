@@ -23,18 +23,9 @@ module top(
 	logic reset;
   frequency f;
   amplitude osc_out;
-  amplitude voice_out;
-  typedef logic [AMPLITUDE_BITS*2-1:0] ampmul;
+logic [3:0] st;
 
   pll clocks (.areset(reset), .inclk0(CLOCK_50), .c0(audio_clock), .c1(fast_clock), .locked(locked));
-
-  assign key[0] = ~KEY[0];
-  assign key[1] = ~KEY[1];
-
-  always @(posedge CLOCK_50) begin
-    //reset <= key[0];
-    reset <= 0;
-  end
 
   nco osc1 (
     .clock(audio_clock),
@@ -44,34 +35,49 @@ module top(
     .out(osc_out)
   );
 
-  always @(posedge audio_clock or posedge reset) begin
-    if (reset) begin
-      f <= 0;
-    end else if (key[1]) begin
-      f <= 22'd880 << FREQUENCY_FRACTIONAL_BITS;
-    end else begin
-      f <= 22'd440 << FREQUENCY_FRACTIONAL_BITS;
-    end
-
-    voice_out = amplitude'((ampmul'(osc_out) * ampmul'(egout)) >> AMPLITUDE_BITS);
-  end
+  logic dout; // PDM audio out.
+  pdm #(.NBITS(AMPLITUDE_BITS)) pdm1 (.clock(CLOCK_50), .reset(reset), .din(osc_out), .dout(dout));
 
   //ring_buffer rb (.rst(reset), .clk(fast_clock), .read_enable(audio_clock), .write_enable(fast_clock), .data_in(osc_out), .data_out(rb_out), .empty(rb_empty), .full(rb_full));
 
+  assign key[0] = ~KEY[0];
+  assign key[1] = ~KEY[1];
+  assign reset = ~KEY[1];
+
+  always @(posedge audio_clock or posedge reset) begin
+    if (reset) begin
+      f <= 0;
+/*    end else if (key[1]) begin
+      f <= 22'd880 << FREQUENCY_FRACTIONAL_BITS;
+*/
+    end else begin
+      f <= 22'd440 << FREQUENCY_FRACTIONAL_BITS;
+    end
+  end
+
+  //assign GPIO[0] = reset;
+  assign GPIO[0] = key[1];
+  assign GPIO[1] = CLOCK_50; // AD2 DIO0
+  assign GPIO[2] = fast_clock; // AD2 DIO1
+  assign GPIO[3] = audio_clock; // AD2 DIO2
+  assign GPIO[4] = dout; // AD2 DIO3
+  assign GPIO[17] = dout;
+
   localparam real sample_rate = 192000;
-  localparam real attack_time = 0.1;
-  localparam real decay_time = 0.1;
+  localparam real attack_time = 0.2;
+  localparam real decay_time = 0.2;
   localparam real sustain = 0.8;
-  localparam real release_time = 0.5;
+  localparam real release_time = 0.2;
 
   localparam TOTAL_BITS = 48;
   localparam FRACTIONAL_BITS = 32;
   typedef logic signed [TOTAL_BITS-1:0]  fixed;
+  typedef logic [TOTAL_BITS-2:0]  ufixed;
 
   localparam real FRACTIONAL_MUL = (2.0 ** FRACTIONAL_BITS);
   fixed a = fixed'((1.0 / (attack_time * sample_rate)) * FRACTIONAL_MUL);//48'd44739;//fixed'((1.0 / (attack_time * sample_rate)) * (2.0 ** FRACTIONAL_BITS))),
   fixed d = fixed'((1.0 / (decay_time * sample_rate)) * FRACTIONAL_MUL);//48'd44739;//fixed'((1.0 / (decay_time * sample_rate)) * (2.0 ** FRACTIONAL_BITS));
-  fixed s = fixed'(48'h8000_0000);//sustain * FRACTIONAL_MUL);//48'h4000_0000;
+  fixed s = fixed'(48'h0000_8000_0000);//ufixed'(sustain * FRACTIONAL_MUL));
   fixed r = fixed'((1.0 / (release_time * sample_rate)) * FRACTIONAL_MUL);//48'd44739;//fixed'((1.0 / (release_time * sample_rate)) * (2.0 ** FRACTIONAL_BITS));
   logic active;
   logic gate;
@@ -89,43 +95,37 @@ module top(
     .r,
     .gate,
     .out(egout),
-    .active
+    .active//, .st(st)
   );
   assign gate = key[0];
 
-  logic dout; // pdm audio out.
-  pdm #(.NBITS(AMPLITUDE_BITS)) pdm1 (.clock(CLOCK_50), .reset(reset), .din(voice_out), .dout(dout));
-
-  //assign GPIO[0] = reset;
-  assign GPIO[0] = key[1];
-  assign GPIO[1] = CLOCK_50; // AD2 DIO0
-  assign GPIO[2] = fast_clock; // AD2 DIO1
-  assign GPIO[3] = audio_clock; // AD2 DIO2
-  assign GPIO[4] = dout; // AD2 DIO3
-  assign GPIO[17] = dout;
-
   always @(posedge audio_clock) begin
-    LED[0] <= (egout > 24'hE0_0000);//fixed'(7.0/8.0*(2**AMPLITUDE_BITS);
-    LED[1] <= (egout > 24'hC0_0000);//fixed'(7.0 / 8.0 * FRACTIONAL_MUL)) ? 1'b1 : 1'b0;
-    LED[2] <= (egout > 24'hA0_0000);//fixed'(0.75 * FRACTIONAL_MUL)) ? 1'b1 : 1'b0;
-    LED[3] <= (egout > 24'h80_0000);//fixed'(0.625 / 8.0 * FRACTIONAL_MUL)) ? 1'b1 : 1'b0;
-    LED[4] <= (egout > 24'h60_0000);//fixed'(0.5 * FRACTIONAL_MUL)) ? 1'b1 : 1'b0;
-    LED[5] <= (egout > 24'h40_0000);//fixed'(0.375 * FRACTIONAL_MUL)) ? 1'b1 : 1'b0;
-    LED[6] <= (egout > 24'h20_0000);//fixed'(0.25 * FRACTIONAL_MUL)) ? 1'b1 : 1'b0;
-    LED[7] <= (egout > 24'h00_0000);//fixed'(0.125 * FRACTIONAL_MUL)) ? 1'b1 : 1'b0;
+    LED[0] <= active;//(egout >= 48'd1 << 32);//fixed'(1 * (2 ** FRACTIONAL_BITS))) ? 1'b1 : 1'b0;
+//LED[1] <= st[0];
+//LED[2] <= st[1];
+//LED[3] <= st[2];
+//LED[4] <= st[3];
+
+    LED[1] <= (egout >= 24'hE00000);//fixed'(7.0 / 8.0 * FRACTIONAL_MUL)) ? 1'b1 : 1'b0;
+    LED[2] <= (egout >= 24'hC00000);//fixed'(0.75 * FRACTIONAL_MUL)) ? 1'b1 : 1'b0;
+    LED[3] <= (egout >= 24'hA00000);//fixed'(0.625 / 8.0 * FRACTIONAL_MUL)) ? 1'b1 : 1'b0;
+    LED[4] <= (egout >= 24'h800000);//fixed'(0.5 * FRACTIONAL_MUL)) ? 1'b1 : 1'b0;
+    LED[5] <= (egout >= 24'h600000);//fixed'(0.375 * FRACTIONAL_MUL)) ? 1'b1 : 1'b0;
+    LED[6] <= (egout >= 24'h400000);//fixed'(0.25 * FRACTIONAL_MUL)) ? 1'b1 : 1'b0;
+    LED[7] <= (egout >= 24'h200000);//fixed'(0.125 * FRACTIONAL_MUL)) ? 1'b1 : 1'b0;
   end
   always @(posedge audio_clock) begin
-    GPIO[ 5] <= egout[AMPLITUDE_BITS-1];//osc_out[0];
-    GPIO[ 6] <= egout[AMPLITUDE_BITS-2];//osc_out[1];
-    GPIO[ 7] <= egout[AMPLITUDE_BITS-3];//osc_out[2];
-    GPIO[ 8] <= egout[AMPLITUDE_BITS-4];//osc_out[3];
-    GPIO[ 9] <= egout[AMPLITUDE_BITS-5];//osc_out[4];
-    GPIO[10] <= egout[AMPLITUDE_BITS-6];//osc_out[5];
-    GPIO[11] <= egout[AMPLITUDE_BITS-7];//osc_out[6];
-    GPIO[12] <= egout[AMPLITUDE_BITS-8];//osc_out[7];
-    GPIO[13] <= egout[AMPLITUDE_BITS-9];//osc_out[8];
-    GPIO[14] <= egout[AMPLITUDE_BITS-10];//osc_out[9];
-    GPIO[15] <= egout[AMPLITUDE_BITS-11];//osc_out[10];
-    GPIO[16] <= egout[AMPLITUDE_BITS-12];//osc_out[11];
+    GPIO[ 5] <= egout[0];//osc_out[0];
+    GPIO[ 6] <= egout[1];//osc_out[1];
+    GPIO[ 7] <= egout[2];//osc_out[2];
+    GPIO[ 8] <= egout[3];//osc_out[3];
+    GPIO[ 9] <= egout[4];//osc_out[4];
+    GPIO[10] <= egout[5];//osc_out[5];
+    GPIO[11] <= egout[6];//osc_out[6];
+    GPIO[12] <= egout[7];//osc_out[7];
+    GPIO[13] <= egout[8];//osc_out[8];
+    GPIO[14] <= egout[9];//osc_out[9];
+    GPIO[15] <= egout[10];//osc_out[10];
+    GPIO[16] <= egout[11];//osc_out[11];
   end
 endmodule:top

@@ -40,7 +40,7 @@ module adsr_tb ();
   );
 
   initial begin
-    $monitor ("[%0t] active=%d out=%x", $time, active, out);
+    $monitor ("[%0t] active=%d gate=%d out=%x", $time, active, gate, out);
 
     #1
     reset = 1'b0;
@@ -54,8 +54,10 @@ module adsr_tb ();
     s = fixed'(0.5 * MAX);
     r = time_value (0.1);
     #10 gate = 1'b1;
-    #450 gate = 1'b0;
-    #200 $finish;
+    #100 $display("0.1s decay starts");
+    #100 $display("0.1s sustain level");
+    #800 gate = 1'b0;
+    #300 $finish;
   end
 
 endmodule:adsr_tb
