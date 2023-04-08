@@ -127,7 +127,7 @@ module adsr #(
         end
       end
 
-      /*unique*/ case (state_)
+      unique case (state_)
       ATTACK: begin
         automatic fixed aout = bases_.a + fixed'((sign_extend(output_) * sign_extend(coefs_.a)) >> FRACTIONAL_BITS);
         if (aout >= one) begin
