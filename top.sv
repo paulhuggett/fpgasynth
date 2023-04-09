@@ -27,7 +27,7 @@ module top(
   pll clocks (.areset(reset), .inclk0(CLOCK_50), .c0(audio_clock), .c1(fast_clock), .locked(locked));
 
   localparam real sample_rate = 192000;
-  localparam real attack_time = 0.2;
+  localparam real attack_time = 0.05;
   localparam real decay_time = 0.2;
   localparam real sustain = 0.8;
   localparam real release_time = 0.2;
@@ -46,7 +46,17 @@ module top(
   logic gate;
   amplitude eg_out;
 
-  adsr #(.TOTAL_BITS(TOTAL_BITS), .FRACTIONAL_BITS(FRACTIONAL_BITS)) adsr (.clk(audio_clock), .reset, .a, .d, .s, .r, .gate, .out(eg_out), .active);
+  adsr #(.TOTAL_BITS(TOTAL_BITS), .FRACTIONAL_BITS(FRACTIONAL_BITS)) adsr (
+    .clk(audio_clock),
+    .reset,
+    .attack_time(a),
+    .decay_time(d),
+    .sustain(s),
+    .release_time(r),
+    .gate,
+    .out(eg_out),
+    .active
+  );
   nco osc1 (.clock(audio_clock), .reset, .enable(active), .freq(f), .out(osc_out));
 
   logic [AMPLITUDE_BITS*2-1:0] final_out;
@@ -54,8 +64,11 @@ module top(
   logic dout; // PDM audio out.
   pdm #(.NBITS(AMPLITUDE_BITS)) pdm1 (.clock(CLOCK_50), .reset(reset), .din(final_out[AMPLITUDE_BITS*2-1:AMPLITUDE_BITS]), .dout(dout));
 
+  logic reset_0;
+  always @(posedge CLOCK_50) reset_0 <= ~KEY[1];
+  always @(posedge CLOCK_50) reset <= reset_0;
+
   always_comb begin
-    reset = ~KEY[1];
     gate = ~KEY[0];
     final_out = osc_out * eg_out;
   end

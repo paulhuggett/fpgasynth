@@ -13,6 +13,7 @@ verilate (Vadsr
   SOURCES
     "${vsrcs}/mypackage.sv"
     "${vsrcs}/adsr_tb.sv"
+    "${vsrcs}/mul.sv"
     "${vsrcs}/adsr.sv"
     "${vsrcs}/eexp.sv"
   VERILATOR_ARGS ${verilator_args}

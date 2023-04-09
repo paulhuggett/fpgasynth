@@ -30,17 +30,17 @@ module adsr_tb ();
   adsr #(.TOTAL_BITS(TOTAL_BITS), .FRACTIONAL_BITS(FRACTIONAL_BITS)) adsr (
     .clk,
     .reset(reset),
-    .a,
-    .d,
-    .s,
-    .r,
+    .attack_time(a),
+    .decay_time(d),
+    .sustain(s),
+    .release_time(r),
     .gate,
     .out,
     .active
   );
 
   initial begin
-    $monitor ("[%0t] active=%d gate=%d out=%x", $time, active, gate, out);
+    $monitor ("[%0t] active=%d gate=%d out=%x output_=%f", $time, active, gate, out, adsr.output_ / (2.0 ** FRACTIONAL_BITS));
 
     #1
     reset = 1'b0;
@@ -53,11 +53,24 @@ module adsr_tb ();
     d = time_value (0.1);
     s = fixed'(0.5 * MAX);
     r = time_value (0.1);
-    #10 gate = 1'b1;
-    #100 $display("0.1s decay starts");
-    #100 $display("0.1s sustain level");
-    #800 gate = 1'b0;
-    #300 $finish;
+    #10
+    assert (active == 1'b0);
+    assert (out == amplitude'(0));
+    // Open the gate.
+    gate = 1'b1;
+    $display ("0.0s attack");
+    #1 assert (active == 1'b1);
+    #200 $display("0.1s (100 ticks) decay starts");
+    assert (out == ~amplitude'(1'b0));
+    #200 $display("0.1s sustain level");
+    assert (out == amplitude'(0.5 * (2.0 ** AMPLITUDE_BITS)));
+    #100 gate = 1'b0;
+    $display("release!");
+    assert (out == amplitude'(0.5 * (2.0 ** AMPLITUDE_BITS)));
+    #200 $display("0.1s release complete");
+    assert (out == amplitude'(0));
+    assert (active == 1'b0);
+    $finish;
   end
 
 endmodule:adsr_tb
