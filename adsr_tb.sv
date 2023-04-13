@@ -1,6 +1,7 @@
 `timescale 1 ps / 1 ps
 
 import mypackage::amplitude;
+import mypackage::AMPLITUDE_BITS;
 
 module adsr_tb ();
 
@@ -15,7 +16,7 @@ module adsr_tb ();
   typedef logic signed [TOTAL_BITS-1:0] fixed;
   fixed a;
   fixed d;
-  fixed s;
+  amplitude s;
   fixed r;
   bit gate;
   amplitude out;
@@ -51,7 +52,7 @@ module adsr_tb ();
     #1 reset = 1'b0;
     a = time_value (0.1);
     d = time_value (0.1);
-    s = fixed'(0.5 * MAX);
+    s = amplitude'(0.5 * (2.0 ** AMPLITUDE_BITS));
     r = time_value (0.1);
     #10
     assert (active == 1'b0);

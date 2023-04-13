@@ -15,6 +15,7 @@ module top(
   logic fast_clock; // 24.576MHz clock
   logic audio_clock; // 192kHz clock
   logic locked;
+
   //logic rb_empty;
   //logic rb_full;
   //amplitude rb_out;
@@ -40,7 +41,7 @@ module top(
   localparam real FRACTIONAL_MUL = (2.0 ** FRACTIONAL_BITS);
   fixed a = fixed'((1.0 / (attack_time * sample_rate)) * FRACTIONAL_MUL);
   fixed d = fixed'((1.0 / (decay_time * sample_rate)) * FRACTIONAL_MUL);
-  fixed s = fixed'(48'h0000_8000_0000);// 50%
+  amplitude s = amplitude'(24'h800000);// 50%
   fixed r = fixed'((1.0 / (release_time * sample_rate)) * FRACTIONAL_MUL);
   logic active;
   logic gate;

@@ -27,7 +27,7 @@ module adsr #(
   input logic reset,
   input logic signed [TOTAL_BITS-1:0] attack_time,
   input logic signed [TOTAL_BITS-1:0] decay_time,
-  input logic signed [TOTAL_BITS-1:0] sustain,
+  input amplitude sustain,
   input logic signed [TOTAL_BITS-1:0] release_time,
   input logic gate,
   output amplitude out,
@@ -94,16 +94,21 @@ module adsr #(
   mul #(.TOTAL_BITS(TOTAL_BITS), .FRACTIONAL_BITS(FRACTIONAL_BITS)) md (.in1(output_), .in2(coefs_.d), .out(mdout));
   mul #(.TOTAL_BITS(TOTAL_BITS), .FRACTIONAL_BITS(FRACTIONAL_BITS)) mr (.in1(output_), .in2(coefs_.r), .out(mrout));
 
+  // sustain amplitude as a 'fixed'.
+  fixed sustain_f;
+
   always_comb begin
+    sustain_f = fixed'(sustain) << (FRACTIONAL_BITS - AMPLITUDE_BITS);
+
     x_.a = `MUL2FIX(sign_extend(ATTACK_ALPHA ) * sign_extend(attack_time  ));
     x_.d = `MUL2FIX(sign_extend(DECAY_ALPHA  ) * sign_extend(decay_time  ));
     x_.r = `MUL2FIX(sign_extend(RELEASE_ALPHA) * sign_extend(release_time));
 
     active = state_ != IDLE;
 
-    bases_.a = `MUL2FIX(sign_extend(one     + ATTACK_RATIO_F ) * sign_extend(one - coefs_.a));
-    bases_.d = `MUL2FIX(sign_extend(sustain - DECAY_RATIO_F  ) * sign_extend(one - coefs_.d));
-    bases_.r = `MUL2FIX(sign_extend(0       - RELEASE_RATIO_F) * sign_extend(one - coefs_.r));
+    bases_.a = `MUL2FIX(sign_extend(one       + ATTACK_RATIO_F ) * sign_extend(one - coefs_.a));
+    bases_.d = `MUL2FIX(sign_extend(sustain_f - DECAY_RATIO_F  ) * sign_extend(one - coefs_.d));
+    bases_.r = `MUL2FIX(sign_extend(0         - RELEASE_RATIO_F) * sign_extend(one - coefs_.r));
   end
 
   always_ff @(posedge clk or posedge reset) begin
@@ -138,9 +143,9 @@ module adsr #(
 
       DECAY: begin
         automatic fixed dout = bases_.d + mdout;
-        if (dout <= sustain) begin
-          output_ <= sustain;
-          out <= fixed2amplitude(sustain);
+        if (dout <= sustain_f) begin
+          output_ <= sustain_f;
+          out <= sustain;
           state_ <= SUSTAIN;
         end else begin
           output_ <= dout;
