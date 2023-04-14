@@ -33,8 +33,8 @@ module top(
   localparam real sustain = 0.8;
   localparam real release_time = 0.2;
 
-  localparam TOTAL_BITS = 48;
   localparam FRACTIONAL_BITS = 32;
+  localparam TOTAL_BITS = FRACTIONAL_BITS + 16;
   typedef logic signed [TOTAL_BITS-1:0]  fixed;
   typedef logic [TOTAL_BITS-2:0]  ufixed;
 

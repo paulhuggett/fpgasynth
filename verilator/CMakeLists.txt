@@ -26,3 +26,7 @@ verilate (Veexp SOURCES "${vsrcs}/eexp_tb.sv" "${vsrcs}/eexp.sv" VERILATOR_ARGS 
 add_executable (Vlerp Vlerp_tb_main.cpp Vmain.hpp sc_time_stamp.cpp)
 set_target_properties (Vlerp PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED Yes)
 verilate (Vlerp SOURCES "${vsrcs}/lerp_tb.sv" "${vsrcs}/lerp.sv" VERILATOR_ARGS ${verilator_args})
+
+add_executable (Vmul Vmul_tb_main.cpp Vmain.hpp sc_time_stamp.cpp)
+set_target_properties (Vmul PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED Yes)
+verilate (Vmul SOURCES "${vsrcs}/mul_tb.sv" "${vsrcs}/mul.sv" VERILATOR_ARGS ${verilator_args})

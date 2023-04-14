@@ -21,13 +21,18 @@ module eexp #(
     return { {TOTAL_BITS{y[TOTAL_BITS-1]}}, y[TOTAL_BITS-1:0] };
   endfunction:sign_extend
 
-  localparam value_type one = value_type'(1 * (2 ** FRACTIONAL_BITS));
-  localparam value_type one_sixth = value_type'(1.0 / 6.0 * (2.0 ** FRACTIONAL_BITS)); // 1/3!
+  // At input values less than -2 our approximation is just woefully innacurate.
+  localparam min = value_type'(-2.0 * (2.0 ** FRACTIONAL_BITS));
+
+  localparam value_type one               = value_type'(1 * (2 ** FRACTIONAL_BITS));
+  localparam value_type one_sixth         = value_type'(1.0 / 6.0 * (2.0 ** FRACTIONAL_BITS)); // 1/3!
   localparam value_type one_twenty_fourth = value_type'(1.0 / 24.0 * (2.0 ** FRACTIONAL_BITS)); // 1/4!
 
   always_comb begin
     value_type x2, x3, x3a, x4, x4a;
     out = one + x; // y=1+x
+
+    assert (x === {TOTAL_BITS{1'bX}} || x >= min);
 
     x2 = value_type'((sign_extend(x) * sign_extend(x)) >> FRACTIONAL_BITS); // x2=x^2
     out += x2 >> 1; // y += x2 / 2!
