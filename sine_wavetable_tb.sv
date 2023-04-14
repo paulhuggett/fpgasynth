@@ -12,14 +12,16 @@ module sine_wavetable_tb ();
   amplitude value; // Output from DUT is wire type
 
   initial begin
+    $monitor("[%0t] %x", $time, value);
     $display($time, " << Starting Simulation >>");
-    #51200;
+    #1000;
     $display($time, " << Simulation Complete >>");
-    $stop;
+    $finish;
   end
    
-  always #1 clock = ~clock;
-  always @(posedge clock) begin
+  initial forever #1 clock = ~clock;
+
+  always_ff @(posedge clock) begin
     // +1 here to add 0.5 to the phase on each clock edge.
     phase[INT_FIRST-1:INT_LAST+1] <= phase[INT_FIRST-1:INT_LAST+1] + 1'b1;
   end

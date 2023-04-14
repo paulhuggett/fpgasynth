@@ -25,7 +25,12 @@ module sine_wavetable (
   amplitude inb;
   logic [PHASE_ACCUMULATOR_FRACTIONAL_BITS-1:0] ratio;
 
-  lerp #(.INPUT_BITS(AMPLITUDE_BITS), .RATIO_FRAC_BITS(PHASE_ACCUMULATOR_FRACTIONAL_BITS)) lerper (.a(ina), .b(inb), .ratio(ratio), .out(q));
+  lerp #(.INPUT_BITS(AMPLITUDE_BITS), .RATIO_FRAC_BITS(PHASE_ACCUMULATOR_FRACTIONAL_BITS)) lerper (
+    .a(ina),
+    .b(inb),
+    .ratio(ratio),
+    .out(q)
+  );
 
   always @(posedge clock) begin
     // Extract the whole number part from the phase.

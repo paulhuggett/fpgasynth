@@ -10,7 +10,6 @@ import mypackage::frequency;
 import mypackage::phase_index_type;
 
 module nco #(
-  parameter unsigned WIDTH = 16, // The number of bits for each stored value.
   parameter unsigned SAMPLE_RATE = 'd192_000 // 192kHz
 ) (
   input logic clock, // System clock.
