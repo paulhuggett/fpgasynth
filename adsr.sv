@@ -79,10 +79,6 @@ module adsr #(
   logic gate_ = 1'b0;
   fixed output_;
 
-  function real fixed2real (fixed x);
-    return real'(x) / (2.0 ** FRACTIONAL_BITS);
-  endfunction
-
   function mul_type sign_extend (fixed x);
     return { {TOTAL_BITS{x[TOTAL_BITS-1]}}, x[TOTAL_BITS-1:0] };
   endfunction:sign_extend
