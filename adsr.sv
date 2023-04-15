@@ -16,6 +16,39 @@
 import mypackage::amplitude;
 import mypackage::AMPLITUDE_BITS;
 
+/* verilator lint_off DECLFILENAME */
+module egtimer #(
+  parameter TOTAL_BITS = 32,
+  parameter FRACTIONAL_BITS = 16,
+  parameter real ALPHA = -1.46633706879 // -$ln((1.0+RATIO)/RATIO)
+) (
+  input logic signed [TOTAL_BITS-1:0] t, // the time as 1/t*S where S is the sample rate.
+  input logic signed [TOTAL_BITS-1:0] out, // the current output value
+  input logic signed [TOTAL_BITS-1:0] mult,
+  output logic signed [TOTAL_BITS-1:0] mout,
+  output logic signed [TOTAL_BITS-1:0] base
+);
+
+  typedef logic signed [TOTAL_BITS-1:0]  fixed;
+  typedef logic signed [TOTAL_BITS*2-1:0]  mul_type;
+
+  // 'one' is actually the value that is just less than one.
+  localparam fixed one = ((fixed'(1) << FRACTIONAL_BITS) - fixed'(1));
+  localparam real FRACTIONAL_MUL = 2.0 ** FRACTIONAL_BITS;
+  localparam fixed ALPHA_F = fixed'(ALPHA * FRACTIONAL_MUL);
+
+  fixed coef;
+  fixed x;
+
+  // The flow of values here is:
+  // t(ime) -> x -> coef -> base
+  muls #(.TOTAL_BITS(TOTAL_BITS), .FRACTIONAL_BITS(FRACTIONAL_BITS)) mx (.in1(ALPHA_F), .in2(t), .out(x));
+  muls #(.TOTAL_BITS(TOTAL_BITS), .FRACTIONAL_BITS(FRACTIONAL_BITS)) ma (.in1(out), .in2(coef), .out(mout));
+  eexp #(.TOTAL_BITS(TOTAL_BITS), .FRACTIONAL_BITS(FRACTIONAL_BITS)) exp (.x(x), .out(coef));
+  muls #(.TOTAL_BITS(TOTAL_BITS), .FRACTIONAL_BITS(FRACTIONAL_BITS)) mb (.in1(mult), .in2(one - coef), .out(base));
+
+endmodule:egtimer
+
 // The Attack, Decay, and Release times are expressed as 1/t*S where S is the sample rate.
 module adsr #(
   parameter TOTAL_BITS = 32,
@@ -36,7 +69,6 @@ module adsr #(
   typedef logic signed [TOTAL_BITS*2-1:0]  mul_type;
 
   `define REAL2FIX(x) (fixed'((x) * FRACTIONAL_MUL))
-  `define MUL2FIX(x) (fixed'((x) >> FRACTIONAL_BITS))
 
   // 'one' is actually the value that is just less than one!
   localparam fixed one = ((fixed'(1) << FRACTIONAL_BITS) - fixed'(1));
@@ -46,27 +78,23 @@ module adsr #(
   localparam real ATTACK_RATIO  = 0.3;
   localparam real DECAY_RATIO   = 0.0001;
   localparam real RELEASE_RATIO = 0.0001;
-
-  localparam fixed ATTACK_RATIO_F  = fixed'(ATTACK_RATIO * FRACTIONAL_MUL);
-  localparam fixed DECAY_RATIO_F   = fixed'(DECAY_RATIO * FRACTIONAL_MUL);
-  localparam fixed RELEASE_RATIO_F = fixed'(RELEASE_RATIO * FRACTIONAL_MUL);
+  localparam fixed ATTACK_RATIO_F  = `REAL2FIX(ATTACK_RATIO);
+  localparam fixed DECAY_RATIO_F   = `REAL2FIX(DECAY_RATIO);
+  localparam fixed RELEASE_RATIO_F = `REAL2FIX(RELEASE_RATIO);
   // Unfortunately, Quartus Prime doesn't support synthesis of a call to $ln()
   // even if evaluating a compile-time constant
-  //  localparam fixed ATTACK_ALPHA  = fixed'((-$ln ((1.0 + ATTACK_RATIO ) / ATTACK_RATIO )) * (1 << FRACTIONAL_BITS));
-  //  localparam fixed DECAY_ALPHA   = fixed'((-$ln ((1.0 + DECAY_RATIO  ) / DECAY_RATIO  )) * (1 << FRACTIONAL_BITS));
-  //  localparam fixed RELEASE_ALPHA = fixed'((-$ln ((1.0 + RELEASE_RATIO) / RELEASE_RATIO)) * (1 << FRACTIONAL_BITS));
-  localparam fixed ATTACK_ALPHA  = `REAL2FIX(-1.46633706879);
-  localparam fixed DECAY_ALPHA   = `REAL2FIX(-9.21044036698);
-  localparam fixed RELEASE_ALPHA = `REAL2FIX(-9.21044036698);
-
+  //  localparam real ATTACK_ALPHA  = -$ln ((1.0 + ATTACK_RATIO ) / ATTACK_RATIO );
+  //  localparam real DECAY_ALPHA   = -$ln ((1.0 + DECAY_RATIO  ) / DECAY_RATIO  );
+  //  localparam real RELEASE_ALPHA = -$ln ((1.0 + RELEASE_RATIO) / RELEASE_RATIO);
+  localparam real ATTACK_ALPHA  = -1.46633706879;
+  localparam real DECAY_ALPHA   = -9.21044036698;
+  localparam real RELEASE_ALPHA = -9.21044036698;
   typedef struct packed {
     fixed a;
     fixed d;
     fixed r;
   } time_values;
   time_values bases_;
-  time_values coefs_;
-  time_values x_;
   time_values mout_;
 
   enum logic [4:0] { // Ensure that states are onehot.
@@ -88,13 +116,39 @@ module adsr #(
   endfunction
   /* verilator lint_on UNUSEDSIGNAL */
 
-  eexp #(.TOTAL_BITS(TOTAL_BITS), .FRACTIONAL_BITS(FRACTIONAL_BITS)) attack_exp  (.x(x_.a), .out(coefs_.a));
-  eexp #(.TOTAL_BITS(TOTAL_BITS), .FRACTIONAL_BITS(FRACTIONAL_BITS)) decay_exp   (.x(x_.d), .out(coefs_.d));
-  eexp #(.TOTAL_BITS(TOTAL_BITS), .FRACTIONAL_BITS(FRACTIONAL_BITS)) release_exp (.x(x_.r), .out(coefs_.r));
-
-  muls #(.TOTAL_BITS(TOTAL_BITS), .FRACTIONAL_BITS(FRACTIONAL_BITS)) ma (.in1(output_), .in2(coefs_.a), .out(mout_.a));
-  muls #(.TOTAL_BITS(TOTAL_BITS), .FRACTIONAL_BITS(FRACTIONAL_BITS)) md (.in1(output_), .in2(coefs_.d), .out(mout_.d));
-  muls #(.TOTAL_BITS(TOTAL_BITS), .FRACTIONAL_BITS(FRACTIONAL_BITS)) mr (.in1(output_), .in2(coefs_.r), .out(mout_.r));
+  egtimer #(
+    .TOTAL_BITS(TOTAL_BITS),
+    .FRACTIONAL_BITS(FRACTIONAL_BITS),
+    .ALPHA(ATTACK_ALPHA)
+  ) xattack (
+    attack_time,
+    output_,
+    one + ATTACK_RATIO_F,
+    mout_.a,
+    bases_.a
+  );
+  egtimer #(
+    .TOTAL_BITS(TOTAL_BITS),
+    .FRACTIONAL_BITS(FRACTIONAL_BITS),
+    .ALPHA(DECAY_ALPHA)
+  ) xdecay (
+    decay_time,
+    output_,
+    sustain_f - DECAY_RATIO_F,
+    mout_.d,
+    bases_.d
+  );
+  egtimer #(
+    .TOTAL_BITS(TOTAL_BITS),
+    .FRACTIONAL_BITS(FRACTIONAL_BITS),
+    .ALPHA(RELEASE_ALPHA)
+  ) xrelease (
+    release_time,
+    output_,
+    0 - RELEASE_RATIO_F,
+    mout_.r,
+    bases_.r
+  );
 
   // sustain amplitude as a 'fixed'.
   fixed sustain_f;
@@ -103,18 +157,6 @@ module adsr #(
     active = state_ != IDLE;
     sustain_f = fixed'(sustain) << (FRACTIONAL_BITS - AMPLITUDE_BITS);
     assert (output_ === {TOTAL_BITS{1'bX}} || output_ < `REAL2FIX(1.0));
-
-    // attack_time  -> x_.a -> coefs_.a -> bases_.a
-    // decay_time   -> x_.d -> coefs_.d -> bases_.d
-    // release_time -> x_.r -> coefs_.r -> bases_.r
-
-    x_.a = `MUL2FIX(sign_extend(ATTACK_ALPHA ) * sign_extend(attack_time ));
-    x_.d = `MUL2FIX(sign_extend(DECAY_ALPHA  ) * sign_extend(decay_time  ));
-    x_.r = `MUL2FIX(sign_extend(RELEASE_ALPHA) * sign_extend(release_time));
-
-    bases_.a = `MUL2FIX(sign_extend(one       + ATTACK_RATIO_F ) * sign_extend(one - coefs_.a));
-    bases_.d = `MUL2FIX(sign_extend(sustain_f - DECAY_RATIO_F  ) * sign_extend(one - coefs_.d));
-    bases_.r = `MUL2FIX(sign_extend(0         - RELEASE_RATIO_F) * sign_extend(one - coefs_.r));
   end
 
   always_ff @(posedge clk or posedge reset) begin
