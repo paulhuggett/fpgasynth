@@ -40,8 +40,20 @@ module adsr_tb ();
     .active
   );
 
-  // Set the A, D, and R times to 0.1s at 1kHz sample rate.
   function void test1 ();
+  endfunction:test1
+
+
+  initial begin
+    $monitor ("[%0t] active=%d gate=%d out=%x output_=%f", $time, active, gate, out, adsr.output_ / (2.0 ** FRACTIONAL_BITS));
+    #1
+    reset = 1'b0;
+    gate = 1'b0;
+    {a, d, s, r} = 0;
+    #1 reset = 1'b1;
+    #1 reset = 1'b0;
+    if (1) begin
+      // Set the A, D, and R times to 0.1s at 1kHz sample rate.
       a = time_value (0.1);
       d = time_value (0.1);
       s = amplitude'(0.5 * (2.0 ** AMPLITUDE_BITS));
@@ -68,32 +80,20 @@ module adsr_tb ();
       #200 $display("0.1s release complete");
       assert (out == amplitude'(0));
       assert (active == 1'b0);
-  endfunction:test1
-
-  // Set the A, D, and R times as short as possible.
-  function void very_short ();
-    a = time_value (0.0010);
-    d = time_value (0.0050);
-    s = amplitude'(0.5 * (2.0 ** AMPLITUDE_BITS));
-    r = time_value (0.0050);
-    gate = 1'b1;
-    #10
-    gate = 1'b0;
-    #5
-    assert (out == amplitude'(0));
-    assert (active == 1'b0);
-  endfunction:very_short
-
-  initial begin
-    $monitor ("[%0t] active=%d gate=%d out=%x output_=%f", $time, active, gate, out, adsr.output_ / (2.0 ** FRACTIONAL_BITS));
-    #1
-    reset = 1'b0;
-    gate = 1'b0;
-    {a, d, s, r} = 0;
-    #1 reset = 1'b1;
-    #1 reset = 1'b0;
-    test1();
-    very_short();
+    end
+    if (1) begin
+      // Set the A, D, and R times as short as possible.
+      a = time_value (0.0010);
+      d = time_value (0.0050);
+      s = amplitude'(0.5 * (2.0 ** AMPLITUDE_BITS));
+      r = time_value (0.0050);
+      gate = 1'b1;
+      #10
+      gate = 1'b0;
+      #5
+      assert (out == amplitude'(0));
+      assert (active == 1'b0);
+    end
     $finish;
   end
 
