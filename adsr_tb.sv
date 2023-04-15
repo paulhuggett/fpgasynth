@@ -1,3 +1,9 @@
+//*          _         *
+//*  __ _ __| |____ _  *
+//* / _` / _` (_-< '_| *
+//* \__,_\__,_/__/_|   *
+//*                    *
+
 `timescale 1 ps / 1 ps
 
 import mypackage::amplitude;
@@ -5,9 +11,8 @@ import mypackage::AMPLITUDE_BITS;
 
 module adsr_tb ();
 
-  localparam SAMPLE_RATE = 1000;
-  localparam TOTAL_BITS = 48;
   localparam FRACTIONAL_BITS = 32;
+  localparam TOTAL_BITS = FRACTIONAL_BITS + 5;
   localparam MAX = 2.0 ** FRACTIONAL_BITS;
 
   logic clk = 1'b0;
@@ -24,8 +29,8 @@ module adsr_tb ();
 
   initial forever #1 clk = ~clk;
 
-  function fixed time_value (real x);
-    return fixed'((1.0 / (x * SAMPLE_RATE)) * MAX);
+  function fixed time_value (real x, real sample_rate);
+    return fixed'((1.0 / (x * sample_rate)) * MAX);
   endfunction:time_value
 
   adsr #(.TOTAL_BITS(TOTAL_BITS), .FRACTIONAL_BITS(FRACTIONAL_BITS)) adsr (
@@ -40,12 +45,8 @@ module adsr_tb ();
     .active
   );
 
-  function void test1 ();
-  endfunction:test1
-
-
   initial begin
-    $monitor ("[%0t] active=%d gate=%d out=%x output_=%f", $time, active, gate, out, adsr.output_ / (2.0 ** FRACTIONAL_BITS));
+    $monitor ("[%0t] active=%d gate=%d out=%x output_=%.16f (%x)", $time, active, gate, out, adsr.output_  / (2.0**FRACTIONAL_BITS), adsr.output_);
     #1
     reset = 1'b0;
     gate = 1'b0;
@@ -54,10 +55,10 @@ module adsr_tb ();
     #1 reset = 1'b0;
     if (1) begin
       // Set the A, D, and R times to 0.1s at 1kHz sample rate.
-      a = time_value (0.1);
-      d = time_value (0.1);
+      a = time_value (0.1, 1000);
+      d = time_value (0.1, 1000);
       s = amplitude'(0.5 * (2.0 ** AMPLITUDE_BITS));
-      r = time_value (0.1);
+      r = time_value (0.1, 1000);
       #10
       assert (active == 1'b0);
       assert (out == amplitude'(0));
@@ -83,10 +84,10 @@ module adsr_tb ();
     end
     if (1) begin
       // Set the A, D, and R times as short as possible.
-      a = time_value (0.0010);
-      d = time_value (0.0050);
+      a = time_value (0.0010, 1000);
+      d = time_value (0.0050, 1000);
       s = amplitude'(0.5 * (2.0 ** AMPLITUDE_BITS));
-      r = time_value (0.0050);
+      r = time_value (0.0050, 1000);
       gate = 1'b1;
       #10
       gate = 1'b0;
@@ -94,6 +95,24 @@ module adsr_tb ();
       assert (out == amplitude'(0));
       assert (active == 1'b0);
     end
+    if (1) begin
+      a = time_value (0.01, 192000);
+      d = time_value (0.01, 192000);
+      s = amplitude'(0.75 * (2.0 ** AMPLITUDE_BITS));
+      r = time_value (0.01, 192000);
+      // Open the gate.
+      gate = 1'b1;
+      $display ("0.01s attack @192kHz");
+      #1 assert (active == 1'b1);
+      #3840; //assert (out == ~amplitude'(1'b0)); // start decay
+      #3840; //start sustain
+      #100 gate = 1'b0;
+      #3840 ;//release
+
+//      assert (out == amplitude'(0));
+//      assert (active == 1'b0);
+    end
+
     $finish;
   end
 

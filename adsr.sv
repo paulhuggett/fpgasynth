@@ -25,20 +25,20 @@ module egtimer #(
   input logic signed [TOTAL_BITS-1:0] t, // the time as 1/t*S where S is the sample rate.
   input logic signed [TOTAL_BITS-1:0] out, // the current output value
   input logic signed [TOTAL_BITS-1:0] mult,
-  output logic signed [TOTAL_BITS-1:0] mout,
-  output logic signed [TOTAL_BITS-1:0] base
+  output logic signed [TOTAL_BITS-1:0] new_out
 );
 
   typedef logic signed [TOTAL_BITS-1:0]  fixed;
   typedef logic signed [TOTAL_BITS*2-1:0]  mul_type;
 
-  // 'one' is actually the value that is just less than one.
   localparam fixed one = ((fixed'(1) << FRACTIONAL_BITS) - fixed'(1));
   localparam real FRACTIONAL_MUL = 2.0 ** FRACTIONAL_BITS;
   localparam fixed ALPHA_F = fixed'(ALPHA * FRACTIONAL_MUL);
 
   fixed coef;
   fixed x;
+  fixed mout;
+  fixed base;
 
   // The flow of values here is:
   // t(ime) -> x -> coef -> base
@@ -46,6 +46,8 @@ module egtimer #(
   muls #(.TOTAL_BITS(TOTAL_BITS), .FRACTIONAL_BITS(FRACTIONAL_BITS)) ma (.in1(out), .in2(coef), .out(mout));
   eexp #(.TOTAL_BITS(TOTAL_BITS), .FRACTIONAL_BITS(FRACTIONAL_BITS)) exp (.x(x), .out(coef));
   muls #(.TOTAL_BITS(TOTAL_BITS), .FRACTIONAL_BITS(FRACTIONAL_BITS)) mb (.in1(mult), .in2(one - coef), .out(base));
+
+  always_comb new_out = base + mout;
 
 endmodule:egtimer
 
@@ -89,14 +91,11 @@ module adsr #(
   localparam real ATTACK_ALPHA  = -1.46633706879;
   localparam real DECAY_ALPHA   = -9.21044036698;
   localparam real RELEASE_ALPHA = -9.21044036698;
-  typedef struct packed {
+  struct packed {
     fixed a;
     fixed d;
     fixed r;
-  } time_values;
-  time_values bases_;
-  time_values mout_;
-
+  } next_output_;
   enum logic [4:0] { // Ensure that states are onehot.
     IDLE    = 5'b00001,
     ATTACK  = 5'b00010,
@@ -115,48 +114,44 @@ module adsr #(
     return x[FRACTIONAL_BITS-1:FRACTIONAL_BITS-AMPLITUDE_BITS];
   endfunction
   /* verilator lint_on UNUSEDSIGNAL */
+  function fixed amplitude2fixed (amplitude x);
+    return fixed'(x) << (FRACTIONAL_BITS - AMPLITUDE_BITS);
+  endfunction:amplitude2fixed
 
   egtimer #(
     .TOTAL_BITS(TOTAL_BITS),
     .FRACTIONAL_BITS(FRACTIONAL_BITS),
     .ALPHA(ATTACK_ALPHA)
-  ) xattack (
+  ) attack_timer (
     attack_time,
     output_,
     one + ATTACK_RATIO_F,
-    mout_.a,
-    bases_.a
+    next_output_.a
   );
   egtimer #(
     .TOTAL_BITS(TOTAL_BITS),
     .FRACTIONAL_BITS(FRACTIONAL_BITS),
     .ALPHA(DECAY_ALPHA)
-  ) xdecay (
+  ) decay_timer (
     decay_time,
     output_,
-    sustain_f - DECAY_RATIO_F,
-    mout_.d,
-    bases_.d
+    amplitude2fixed(sustain) - DECAY_RATIO_F,
+    next_output_.d
   );
   egtimer #(
     .TOTAL_BITS(TOTAL_BITS),
     .FRACTIONAL_BITS(FRACTIONAL_BITS),
     .ALPHA(RELEASE_ALPHA)
-  ) xrelease (
+  ) release_timer (
     release_time,
     output_,
     0 - RELEASE_RATIO_F,
-    mout_.r,
-    bases_.r
+    next_output_.r
   );
-
-  // sustain amplitude as a 'fixed'.
-  fixed sustain_f;
 
   always_comb begin
     active = state_ != IDLE;
-    sustain_f = fixed'(sustain) << (FRACTIONAL_BITS - AMPLITUDE_BITS);
-    assert (output_ === {TOTAL_BITS{1'bX}} || output_ < `REAL2FIX(1.0));
+    assert (output_ === {TOTAL_BITS{1'bX}} || output_ < `REAL2FIX(1.0)) else $error("output=%x", output_);
   end
 
   always_ff @(posedge clk or posedge reset) begin
@@ -177,38 +172,35 @@ module adsr #(
 
       unique case (state_)
       ATTACK: begin
-        automatic fixed aout = bases_.a + mout_.a;
-        if (aout >= one) begin
+        if (next_output_.a >= one) begin
           output_ <= one;
           out <= fixed2amplitude(one);
           state_ <= DECAY;
         end else begin
-          output_ <= aout;
-          out <= fixed2amplitude(aout);
+          output_ <= next_output_.a;
+          out <= fixed2amplitude(next_output_.a);
         end
       end
 
       DECAY: begin
-        automatic fixed dout = bases_.d + mout_.d;
-        if (dout <= sustain_f) begin
-          output_ <= sustain_f;
+        if (next_output_.d <= amplitude2fixed(sustain)) begin
+          output_ <= amplitude2fixed(sustain);
           out <= sustain;
           state_ <= SUSTAIN;
         end else begin
-          output_ <= dout;
-          out <= fixed2amplitude(dout);
+          output_ <= next_output_.d;
+          out <= fixed2amplitude(next_output_.d);
         end
       end
 
       RELEASE: begin
-        automatic fixed rout = bases_.r + mout_.r;
-        if (rout <= fixed'(0) || fixed2amplitude(rout) == amplitude'(0)) begin
+        if (next_output_.r <= fixed'(0) || fixed2amplitude(next_output_.r) == amplitude'(0)) begin
           output_ <= fixed'(0);
           out <= amplitude'(0);
           state_ <= IDLE;
         end else begin
-          output_ <= rout;
-          out <= fixed2amplitude(rout);
+          output_ <= next_output_.r;
+          out <= fixed2amplitude(next_output_.r);
         end
       end
 
