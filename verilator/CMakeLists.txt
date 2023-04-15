@@ -54,3 +54,12 @@ verilate (Vsine_wavetable
     "${vsrcs}/sine_wavetable.sv"
   VERILATOR_ARGS ${verilator_args}
 )
+
+add_executable (Vbin2bcd Vbin2bcd.cpp Vmain.hpp sc_time_stamp.cpp)
+set_target_properties (Vbin2bcd PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED Yes)
+verilate (Vbin2bcd
+  SOURCES
+  "${vsrcs}/bin2bcd_tb.sv"
+  "${vsrcs}/bin2bcd.sv"
+  VERILATOR_ARGS ${verilator_args}
+)
