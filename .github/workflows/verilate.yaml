@@ -16,11 +16,27 @@ jobs:
         with:
           repository: 'verilator/verilator'
 
+      - name: Get HEAD Commit
+        id: get-verilator-head
+        run: |
+          REVISION=$(git rev-parse HEAD)
+          echo "Verilator HEAD: $REVISION"
+          echo "commit=$REVISION" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the Verilator Build
+        id: cache-verilator-build
+        uses: actions/cache@v3
+        with:
+          key: verilator-${{ runner.os }}-${{ steps.get-verilator-head.outputs.commit }}
+          path: verilator.tgz
+
       - name: Apt Update
+        if: ${{ steps.cache-verilator-build.outputs.cache-hit != 'true' }}
         run: |
           sudo apt-get update
 
       - name: Install Build Dependencies
+        if: ${{ steps.cache-verilator-build.outputs.cache-hit != 'true' }}
         run: |
           sudo apt-get install -y git perl python3 make autoconf g++ flex bison ccache
           sudo apt-get install -y libunwind-dev
@@ -31,28 +47,24 @@ jobs:
           #sudo apt-get install -y zlibc zlib1g zlib1g-dev  # Ubuntu only (ignore if gives error)
 
       - name: Configure
+        if: ${{ steps.cache-verilator-build.outputs.cache-hit != 'true' }}
         run: |
           unset VERILATOR_ROOT
           autoconf    # Create ./configure script
           ./configure # Configure and create Makefile
 
-      - name: Cache Object Files
-        uses: actions/cache@v3
-        with:
-          path:
-            ${{ github.workspace }}/src/obj_dbg
-            ${{ github.workspace }}/src/obj_opt
-          key: ${{ runner.os }}-vobjs
-
       - name: Build
+        if: ${{ steps.cache-verilator-build.outputs.cache-hit != 'true' }}
         run: |
           make
 
       - name: Test
+        if: ${{ steps.cache-verilator-build.outputs.cache-hit != 'true' }}
         run: |
           make test
 
       - name: Tar the build
+        if: ${{ steps.cache-verilator-build.outputs.cache-hit != 'true' }}
         working-directory: ${{ github.workspace }}
         run: |
           DIR=$(mktemp -d)
