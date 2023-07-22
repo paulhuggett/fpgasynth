@@ -27,6 +27,7 @@ jobs:
       # Based on the instructions <https://verilator.org/guide/latest/install.html#git-install>.
       - name: Checkout Sources
         uses: actions/checkout@v3
+        if: ${{ steps.cache-verilator-build.outputs.cache-hit != 'true' }}
         with:
           repository: 'verilator/verilator'
 
