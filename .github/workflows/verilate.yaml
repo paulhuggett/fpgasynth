@@ -28,7 +28,7 @@ jobs:
         uses: actions/cache@v3
         with:
           key: verilator-${{ runner.os }}-${{ steps.get-verilator-head.outputs.commit }}
-          path: verilator.tgz
+          path: ~/verilator.tgz
 
       - name: Apt Update
         if: ${{ steps.cache-verilator-build.outputs.cache-hit != 'true' }}
