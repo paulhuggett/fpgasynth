@@ -1,40 +1,56 @@
-cmake_minimum_required(VERSION 3.22)
+cmake_minimum_required (VERSION 3.22)
 project (cmake_example)
 find_package (verilator HINTS $ENV{VERILATOR_ROOT})
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unknown-warning-option")
 
 set (verilator_args --timing --assert -Wall)
 set (vsrcs "${CMAKE_CURRENT_SOURCE_DIR}/..")
 
-add_executable (Vadsr Vadsr.cpp Vmain.hpp sc_time_stamp.cpp)
-set_target_properties (Vadsr PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED Yes)
+add_executable (Vadsr Vadsr.cpp main.hpp sc_time_stamp.cpp)
+target_compile_features (Vadsr PUBLIC cxx_std_20)
 verilate (Vadsr
   TOP_MODULE adsr_tb
+  PREFIX adsr
   SOURCES
     "${vsrcs}/mypackage.sv"
-    "${vsrcs}/adsr.sv"
-    "${vsrcs}/adsr_tb.sv"
     "${vsrcs}/eexp.sv"
     "${vsrcs}/mul.sv"
+    "${vsrcs}/adsr.sv"
+    "${vsrcs}/adsr_tb.sv"
   VERILATOR_ARGS ${verilator_args}
 )
 
-add_executable (Veexp Veexp.cpp Vmain.hpp sc_time_stamp.cpp)
-set_target_properties (Veexp PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED Yes)
-verilate (Veexp SOURCES "${vsrcs}/eexp_tb.sv" "${vsrcs}/eexp.sv" VERILATOR_ARGS ${verilator_args})
+add_executable (Veexp Veexp.cpp main.hpp sc_time_stamp.cpp)
+target_compile_features (Veexp PUBLIC cxx_std_20)
+verilate (Veexp
+  TOP_MODULE eexp_tb
+  PREFIX eexp
+  SOURCES "${vsrcs}/eexp.sv" "${vsrcs}/eexp_tb.sv"
+  VERILATOR_ARGS ${verilator_args}
+)
 
-add_executable (Vlerp Vlerp.cpp Vmain.hpp sc_time_stamp.cpp)
-set_target_properties (Vlerp PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED Yes)
-verilate (Vlerp SOURCES "${vsrcs}/lerp_tb.sv" "${vsrcs}/lerp.sv" VERILATOR_ARGS ${verilator_args})
+add_executable (Vlerp Vlerp.cpp main.hpp sc_time_stamp.cpp)
+target_compile_features (Vlerp PUBLIC cxx_std_20)
+verilate (Vlerp
+  TOP_MODULE lerp_tb
+  PREFIX lerp
+  SOURCES "${vsrcs}/lerp.sv" "${vsrcs}/lerp_tb.sv"
+  VERILATOR_ARGS ${verilator_args}
+)
 
-add_executable (Vmul Vmul.cpp Vmain.hpp sc_time_stamp.cpp)
-set_target_properties (Vmul PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED Yes)
-verilate (Vmul SOURCES "${vsrcs}/mul_tb.sv" "${vsrcs}/mul.sv" VERILATOR_ARGS ${verilator_args})
+add_executable (Vmul Vmul.cpp main.hpp sc_time_stamp.cpp)
+target_compile_features (Vmul PUBLIC cxx_std_20)
+verilate (Vmul
+  TOP_MODULE mul_tb
+  PREFIX mul
+  SOURCES "${vsrcs}/mul_tb.sv" "${vsrcs}/mul.sv"
+  VERILATOR_ARGS ${verilator_args}
+)
 
-add_executable (Vnco Vnco.cpp Vmain.hpp sc_time_stamp.cpp)
-set_target_properties (Vnco PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED Yes)
+add_executable (Vnco Vnco.cpp main.hpp sc_time_stamp.cpp)
+target_compile_features (Vnco PUBLIC cxx_std_20)
 verilate (Vnco
   TOP_MODULE nco_tb
+  PREFIX nco
   SOURCES
     "${vsrcs}/mypackage.sv"
     "${vsrcs}/lerp.sv"
@@ -44,22 +60,25 @@ verilate (Vnco
   VERILATOR_ARGS ${verilator_args}
 )
 
-add_executable (Vsine_wavetable Vsine_wavetable.cpp Vmain.hpp sc_time_stamp.cpp)
-set_target_properties (Vsine_wavetable PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED Yes)
+add_executable (Vsine_wavetable Vsine_wavetable.cpp main.hpp sc_time_stamp.cpp)
+target_compile_features (Vsine_wavetable PUBLIC cxx_std_20)
 verilate (Vsine_wavetable
+  PREFIX sine_wavetable
   SOURCES
-  "${vsrcs}/mypackage.sv"
-  "${vsrcs}/lerp.sv"
-  "${vsrcs}/sine_wavetable_tb.sv"
+    "${vsrcs}/mypackage.sv"
+    "${vsrcs}/lerp.sv"
+    "${vsrcs}/sine_wavetable_tb.sv"
     "${vsrcs}/sine_wavetable.sv"
   VERILATOR_ARGS ${verilator_args}
 )
 
-add_executable (Vbin2bcd Vbin2bcd.cpp Vmain.hpp sc_time_stamp.cpp)
-set_target_properties (Vbin2bcd PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED Yes)
+add_executable (Vbin2bcd Vbin2bcd.cpp main.hpp sc_time_stamp.cpp)
+target_compile_features (Vbin2bcd PUBLIC cxx_std_20)
 verilate (Vbin2bcd
+  TOP_MODULE bin2bcd_tb
+  PREFIX bin2bcd
   SOURCES
-  "${vsrcs}/bin2bcd_tb.sv"
-  "${vsrcs}/bin2bcd.sv"
+    "${vsrcs}/bin2bcd_tb.sv"
+    "${vsrcs}/bin2bcd.sv"
   VERILATOR_ARGS ${verilator_args}
 )

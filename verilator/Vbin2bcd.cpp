@@ -1,4 +1,6 @@
 // Verilated -*- C++ -*-
-#include "Vmain.hpp"
-#include "Vbin2bcd_tb.h"
-int main(int argc, char** argv) { return Vmain<Vbin2bcd_tb> (argc, argv); }
+#include "bin2bcd.h"
+#include "main.hpp"
+int main (int argc, char** argv) {
+  return Vmain<bin2bcd> (argc, argv);
+}

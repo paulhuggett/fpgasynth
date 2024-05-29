@@ -1,4 +1,6 @@
 // Verilated -*- C++ -*-
-#include "Vmain.hpp"
-#include "Vmypackage.h"
-int main(int argc, char** argv) { return Vmain<Vmypackage> (argc, argv); }
+#include "main.hpp"
+#include "nco.h"
+int main (int argc, char** argv) {
+  return Vmain<nco> (argc, argv);
+}
