@@ -15,14 +15,14 @@ jobs:
 
       - name: Cache the Verilator Build
         id: cache-verilator-build
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           key: verilator-${{ runner.os }}-${{ steps.get-verilator-head.outputs.commit }}
           path: ~/verilator.tgz
 
       # Based on the instructions <https://verilator.org/guide/latest/install.html#git-install>.
       - name: Checkout Sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         if: ${{ steps.cache-verilator-build.outputs.cache-hit != 'true' }}
         with:
           repository: 'verilator/verilator'
@@ -38,6 +38,7 @@ jobs:
           sudo apt-get install -y libfl-dev  # Ubuntu only (ignore if gives error)
           sudo apt-get install -y help2man
           #sudo apt-get install -y zlibc zlib1g zlib1g-dev  # Ubuntu only (ignore if gives error)
+          sudo apt-get install -y rsync
 
       - name: Configure
         if: ${{ steps.cache-verilator-build.outputs.cache-hit != 'true' }}
@@ -67,7 +68,7 @@ jobs:
           tar --posix -c -z -f ~/verilator.tgz verilator
 
       - name: Upload
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: verilator.tgz
           path: ~/verilator.tgz
@@ -77,7 +78,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download verilator
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: verilator.tgz
 
@@ -95,7 +96,7 @@ jobs:
           sudo apt-get install -y cmake ninja-build
 
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: 'True'
 
