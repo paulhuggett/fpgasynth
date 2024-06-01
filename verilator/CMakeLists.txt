@@ -1,6 +1,8 @@
 cmake_minimum_required (VERSION 3.22)
-project (cmake_example)
+project (verilate_synth)
 find_package (verilator HINTS $ENV{VERILATOR_ROOT})
+
+enable_testing()
 
 function (verilate_test target)
   cmake_parse_arguments (arg # prefix
@@ -27,6 +29,7 @@ function (verilate_test target)
     TOP_MODULE "${target}_tb"
     VERILATOR_ARGS --timing --assert -Wall
   )
+  add_test (NAME "${target}" COMMAND "${target}")
 endfunction ()
 
 set (vsrcs "${CMAKE_CURRENT_SOURCE_DIR}/..")
