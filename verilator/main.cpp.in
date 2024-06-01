@@ -1,0 +1,6 @@
+// Verilated -*- C++ -*-
+#include "@target@.h"
+#include "main.hpp"
+int main (int argc, char** argv) {
+  return Vmain<@target@> (argc, argv);
+}

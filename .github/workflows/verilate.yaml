@@ -1,10 +1,6 @@
 name: Verilate
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    # The branches below must be a subset of the branches above
-    branches: [ "main" ]
   workflow_dispatch:
 jobs:
   verilator-build:
@@ -13,23 +9,24 @@ jobs:
       - name: Get HEAD Commit
         id: get-verilator-head
         run: |
-          REVISION=$(git ls-remote https://github.com/verilator/verilator HEAD | awk '{ print $1 }')
-          echo "Verilator HEAD: $REVISION"
+          REVISION=$(git ls-remote https://github.com/verilator/verilator refs/heads/stable | awk '{ print $1 }')
+          echo "Verilator stable head: $REVISION"
           echo "commit=$REVISION" >> "$GITHUB_OUTPUT"
 
       - name: Cache the Verilator Build
         id: cache-verilator-build
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           key: verilator-${{ runner.os }}-${{ steps.get-verilator-head.outputs.commit }}
           path: ~/verilator.tgz
 
       # Based on the instructions <https://verilator.org/guide/latest/install.html#git-install>.
       - name: Checkout Sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         if: ${{ steps.cache-verilator-build.outputs.cache-hit != 'true' }}
         with:
-          repository: 'verilator/verilator'
+          repository: verilator/verilator
+          ref: stable
 
       - name: Install Build Dependencies
         if: ${{ steps.cache-verilator-build.outputs.cache-hit != 'true' }}
@@ -42,6 +39,7 @@ jobs:
           sudo apt-get install -y libfl-dev  # Ubuntu only (ignore if gives error)
           sudo apt-get install -y help2man
           #sudo apt-get install -y zlibc zlib1g zlib1g-dev  # Ubuntu only (ignore if gives error)
+          sudo apt-get install -y rsync
 
       - name: Configure
         if: ${{ steps.cache-verilator-build.outputs.cache-hit != 'true' }}
@@ -53,7 +51,7 @@ jobs:
       - name: Build
         if: ${{ steps.cache-verilator-build.outputs.cache-hit != 'true' }}
         run: |
-          make
+          make -j "$(nproc)"
 
       - name: Test
         if: ${{ steps.cache-verilator-build.outputs.cache-hit != 'true' }}
@@ -71,7 +69,7 @@ jobs:
           tar --posix -c -z -f ~/verilator.tgz verilator
 
       - name: Upload
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: verilator.tgz
           path: ~/verilator.tgz
@@ -81,16 +79,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download verilator
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: verilator.tgz
 
-      - name: Untar Verilator
-        run: |
-          tar xzvf verilator.tgz
-
       - name: Install Verilator
         run: |
+          tar xzvf verilator.tgz
           sudo make -C verilator install
 
       - name: Install Dependencies
@@ -99,24 +94,18 @@ jobs:
           sudo apt-get install -y cmake ninja-build
 
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: 'True'
 
       - name: Create Build Environment
-        run: cmake -E make_directory "${{ runner.workspace }}/build"
+        run: cmake -E make_directory "${{ github.workspace }}/build"
 
       - name: Configure
-        run: |
-          cmake -G Ninja -B "${{ runner.workspace }}/build" -S "$GITHUB_WORKSPACE/verilator"
+        run: cmake -G Ninja -B "${{ github.workspace }}/build" -S "$GITHUB_WORKSPACE/verilator"
 
       - name: Build
-        run: |
-          cmake --build "${{ runner.workspace }}/build"
+        run: cmake --build "${{ github.workspace }}/build"
 
       - name: Run Tests
-        run: |
-          for f in $(find "${{ runner.workspace }}/build" -name CMakeFiles -prune -or -perm /u+x -type f -print); do
-            echo $F
-            $f
-          done
+        run: ctest --output-on-failure --test-dir "${{github.workspace}}/build"
